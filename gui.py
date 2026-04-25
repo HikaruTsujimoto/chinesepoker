@@ -1,0 +1,380 @@
+import pygame
+import os
+import sys
+from player import Player
+from game import Game
+
+# --- Constants & Colors ---
+WIDTH, HEIGHT = 1280, 900
+FPS = 60
+BG_COLOR = (35, 90, 50) # Poker table green
+WHITE = (255, 255, 255)
+GOLD = (255, 215, 0)
+BLACK = (0, 0, 0)
+RED = (220, 20, 60)
+
+CARD_W, CARD_H = 70, 96
+
+# --- Pygame Setup ---
+pygame.init()
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Pineapple OFC")
+clock = pygame.time.Clock()
+font = pygame.font.SysFont('Arial', 24, bold=True)
+large_font = pygame.font.SysFont('Arial', 36, bold=True)
+mono_font = pygame.font.SysFont('Consolas', 24, bold=True)
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        base_path = sys._MEIPASS
+    except AttributeError:
+        base_path = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base_path, relative_path)
+
+# --- Asset Loading ---
+def load_assets():
+    cards = {}
+    for suit in ['S', 'H', 'D', 'C']:
+        for rank in ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']:
+            path = resource_path(os.path.join('assets', f"{rank}{suit}.png"))
+            try:
+                img = pygame.image.load(path).convert_alpha()
+                cards[f"{suit}{rank}"] = pygame.transform.smoothscale(img, (CARD_W, CARD_H))
+            except:
+                pass # Skip if missing
+    try:
+        back_img = pygame.image.load(resource_path(os.path.join('assets', 'back.png'))).convert_alpha()
+        cards['back'] = pygame.transform.smoothscale(back_img, (CARD_W, CARD_H))
+    except:
+        pass
+    return cards
+
+card_images = load_assets()
+
+# --- Helpers ---
+def draw_text(surface, text, font, color, x, y, align="left"):
+    img = font.render(text, True, color)
+    rect = img.get_rect()
+    if align == "center": rect.center = (x, y)
+    elif align == "right": rect.topright = (x, y)
+    else: rect.topleft = (x, y)
+    surface.blit(img, rect)
+
+class Button:
+    def __init__(self, x, y, w, h, text, color, hover_color):
+        self.rect = pygame.Rect(x, y, w, h)
+        self.text = text
+        self.color = color
+        self.hover_color = hover_color
+        
+    def draw(self, surface):
+        mouse_pos = pygame.mouse.get_pos()
+        c = self.hover_color if self.rect.collidepoint(mouse_pos) else self.color
+        pygame.draw.rect(surface, c, self.rect, border_radius=8)
+        pygame.draw.rect(surface, WHITE, self.rect, 2, border_radius=8)
+        draw_text(surface, self.text, font, WHITE, self.rect.centerx, self.rect.centery, align="center")
+        
+    def is_clicked(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.rect.collidepoint(event.pos):
+                return True
+        return False
+
+class GameGUI:
+    def __init__(self):
+        self.p1 = Player("Player 1")
+        self.p2 = Player("Player 2")
+        self.game = Game([self.p1, self.p2])
+        self.game_round = 1
+        
+        self.actions = []
+        self.current_action = None
+        self.cards_in_hand = [] # Unplaced cards
+        self.placed_this_turn = [] # Track cards placed this turn to allow moving
+        self.hidden_cards = {self.p1.name: [], self.p2.name: []}
+        self.current_round_num = 1
+        
+        self.selected_card = None
+        self.waiting_for_turn_start = False
+        self.btn_confirm = Button(WIDTH // 2 - 75, HEIGHT - 80, 150, 50, "Confirm", (0, 120, 200), (0, 150, 250))
+        self.btn_next = Button(WIDTH // 2 - 100, HEIGHT - 100, 200, 50, "Next Round", (0, 150, 50), (0, 180, 80))
+        
+        self.show_results = False
+        self.results_text = ""
+        
+        self.build_round_actions()
+        self.next_action()
+
+    def build_round_actions(self):
+        # Reset players for new round
+        self.game.deck = Game(self.game.players).deck # New deck
+        for p in self.game.players:
+            p.top, p.mid, p.bot = [], [], []
+            p.is_foul = False
+            p.fantasyland = p.next_fantasyland
+            if p.fantasyland:
+                p.fantasyland_cards = p.next_fantasyland_cards
+            p.next_fantasyland, p.next_fantasyland_cards = False, 0
+            
+        self.actions = []
+        normal_players = [p for p in self.game.players if not p.fantasyland]
+        fl_players = [p for p in self.game.players if p.fantasyland]
+        
+        # Normal turns
+        if normal_players:
+            for p in normal_players:
+                self.actions.append({'type':'turn', 'player':p, 'deal':5, 'place':5, 'round': 1})
+                
+            for r in range(2, 6):
+                for p in normal_players:
+                    self.actions.append({'type':'turn', 'player':p, 'deal':3, 'place':2, 'round': r})
+                    
+        # Fantasyland turns play last
+        for p in fl_players:
+            self.actions.append({'type':'turn', 'player':p, 'deal':p.fantasyland_cards, 'place':13, 'round': 6})
+                    
+        self.actions.append({'type':'eval'})
+
+    def next_action(self):
+        if not self.actions:
+            return
+        
+        self.current_action = self.actions.pop(0)
+        self.placed_this_turn = []
+        self.selected_card = None
+        
+        if self.current_action['type'] == 'turn':
+            action_round = self.current_action.get('round', 1)
+            if action_round != self.current_round_num:
+                self.current_round_num = action_round
+                # Round changed! Sort boards so cards group properly now that they are revealed
+                from collections import Counter
+                for p in self.game.players:
+                    for row in [p.top, p.mid, p.bot]:
+                        counts = Counter(c.value for c in row)
+                        row.sort(key=lambda c: (counts[c.value], c.value), reverse=True)
+                
+                # Reveal all cards
+                for name in self.hidden_cards:
+                    self.hidden_cards[name] = []
+                    
+            player = self.current_action['player']
+            deal_count = self.current_action['deal']
+            self.cards_in_hand = self.game.deal_cards(player, deal_count)
+            self.waiting_for_turn_start = True
+        elif self.current_action['type'] == 'eval':
+            # Final sort before showing results
+            from collections import Counter
+            for p in self.game.players:
+                for row in [p.top, p.mid, p.bot]:
+                    counts = Counter(c.value for c in row)
+                    row.sort(key=lambda c: (counts[c.value], c.value), reverse=True)
+                    
+            self.show_results = True
+            self.results_text = self.game.resolve_scores()
+
+    def get_row_rects(self, player_idx):
+        # Returns dict of rects for top, mid, bot for a player
+        # p1 (left), p2 (right)
+        base_x = 50 if player_idx == 0 else 700
+        base_y = 100
+        
+        rects = {}
+        # Top (3 cards), offset by 1 card width
+        rects['top'] = [pygame.Rect(base_x + (i+1)*(CARD_W+10), base_y, CARD_W, CARD_H) for i in range(3)]
+        # Mid (5 cards)
+        rects['mid'] = [pygame.Rect(base_x + i*(CARD_W+10), base_y + CARD_H + 10, CARD_W, CARD_H) for i in range(5)]
+        # Bot (5 cards)
+        rects['bot'] = [pygame.Rect(base_x + i*(CARD_W+10), base_y + 2*(CARD_H + 10), CARD_W, CARD_H) for i in range(5)]
+        return rects
+
+    def handle_click(self, pos):
+        if self.show_results or self.waiting_for_turn_start:
+            return
+
+        if self.current_action['type'] != 'turn':
+            return
+            
+        player = self.current_action['player']
+        place_req = self.current_action['place']
+        
+        # Check clicking cards in hand
+        p_idx = 0 if player == self.p1 else 1
+        hand_start_x = 50 if p_idx == 0 else 700
+        hand_start_y = 480
+        for i, card in enumerate(self.cards_in_hand):
+            row_offset = i // 5
+            col_offset = i % 5
+            rect = pygame.Rect(hand_start_x + col_offset*(CARD_W+10), hand_start_y + row_offset*(CARD_H+10), CARD_W, CARD_H)
+            if rect.collidepoint(pos):
+                if self.selected_card == card:
+                    self.selected_card = None # deselect
+                else:
+                    self.selected_card = card
+                return
+
+        # Check clicking cards placed THIS turn to move them back or select them
+        # Actually easier: click a placed_this_turn card to pick it up back to hand
+        p_idx = 0 if player == self.p1 else 1
+        row_rects = self.get_row_rects(p_idx)
+        
+        # Check placing selected card or picking up
+        for row_name, rect_list in row_rects.items():
+            row_cards = getattr(player, row_name)
+            for i, rect in enumerate(rect_list):
+                if rect.collidepoint(pos):
+                    # If clicking an existing card placed this turn, select it (pick up)
+                    if i < len(row_cards):
+                        clicked_card = row_cards[i]
+                        if clicked_card in self.placed_this_turn:
+                            # Pick it up
+                            row_cards.remove(clicked_card)
+                            self.placed_this_turn.remove(clicked_card)
+                            self.cards_in_hand.append(clicked_card)
+                            self.selected_card = clicked_card
+                    else:
+                        # Empty slot, try to place selected card
+                        if self.selected_card:
+                            # Must place in the next available slot of that row, which is len(row_cards)
+                            if len(row_cards) < (3 if row_name == 'top' else 5):
+                                if len(self.placed_this_turn) < place_req:
+                                    if self.selected_card in self.cards_in_hand:
+                                        self.cards_in_hand.remove(self.selected_card)
+                                    row_cards.append(self.selected_card)
+                                    self.placed_this_turn.append(self.selected_card)
+                                    self.selected_card = None
+                    return
+
+    def draw(self, surface):
+        surface.fill(BG_COLOR)
+        
+        # Draw boards
+        for idx, p in enumerate(self.game.players):
+            row_rects = self.get_row_rects(idx)
+            base_x = 50 if idx == 0 else 700
+            
+            # Draw player name and score
+            draw_text(surface, f"{p.name} - Score: {self.game.points[p.name]}", font, WHITE, base_x, 60)
+            if p.fantasyland:
+                draw_text(surface, "FANTASYLAND", font, GOLD, base_x + 250, 60)
+                
+            for row_name in ['top', 'mid', 'bot']:
+                rects = row_rects[row_name]
+                cards = getattr(p, row_name)
+                for i, rect in enumerate(rects):
+                    # Outline
+                    pygame.draw.rect(surface, (50, 120, 70), rect, 2, border_radius=5)
+                    if i < len(cards):
+                        c = cards[i]
+                        
+                        # Hide cards placed in current round if it's not this player's turn
+                        is_active_player = (self.current_action and self.current_action.get('type') == 'turn' and self.current_action['player'] == p)
+                        
+                        if not is_active_player and c in self.hidden_cards[p.name]:
+                            # Transparent (do not draw the card or its back) to completely hide placement position
+                            pass
+                        else:
+                            img_key = f"{c.suit}{c.rank}"
+                            if img_key in card_images:
+                                surface.blit(card_images[img_key], rect)
+                        # Highlight if placed this turn
+                        if c in self.placed_this_turn:
+                            pygame.draw.rect(surface, GOLD, rect, 3, border_radius=5)
+
+        if self.show_results:
+            # Draw results overlay
+            overlay = pygame.Surface((WIDTH, HEIGHT))
+            overlay.set_alpha(200)
+            overlay.fill(BLACK)
+            surface.blit(overlay, (0,0))
+            
+            draw_text(surface, f"End of Round {self.game_round}", large_font, WHITE, WIDTH//2, 100, align="center")
+            
+            # Split results by newline
+            y = 160
+            for line in self.results_text.split('\n'):
+                draw_text(surface, line, mono_font, WHITE, WIDTH//2 - 180, y, align="left")
+                y += 35
+                    
+            self.btn_next.draw(surface)
+            return
+
+        # Draw current turn info
+        if self.current_action and self.current_action['type'] == 'turn':
+            player = self.current_action['player']
+            req = self.current_action['place']
+            
+            if self.waiting_for_turn_start:
+                overlay = pygame.Surface((WIDTH, HEIGHT))
+                overlay.set_alpha(200)
+                overlay.fill(BLACK)
+                surface.blit(overlay, (0,0))
+                
+                msg = f"{player.name}'s Turn"
+                if player.fantasyland:
+                    msg += " (FANTASYLAND)"
+                draw_text(surface, msg, large_font, GOLD, WIDTH//2, HEIGHT//2 - 30, align="center")
+                draw_text(surface, "Click anywhere to start and reveal your cards", font, WHITE, WIDTH//2, HEIGHT//2 + 30, align="center")
+                return
+
+            # Display Turn Info in top center to avoid overlapping with Player 2's Fantasyland text
+            draw_text(surface, f"Turn: {player.name} | Need to place: {req - len(self.placed_this_turn)} more", font, GOLD, WIDTH // 2, 20, align="center")
+            
+            # Draw hand
+            p_idx = 0 if player == self.p1 else 1
+            hand_start_x = 50 if p_idx == 0 else 700
+            hand_start_y = 480
+            for i, card in enumerate(self.cards_in_hand):
+                row_offset = i // 5
+                col_offset = i % 5
+                rect = pygame.Rect(hand_start_x + col_offset*(CARD_W+10), hand_start_y + row_offset*(CARD_H+10), CARD_W, CARD_H)
+                img_key = f"{card.suit}{card.rank}"
+                if img_key in card_images:
+                    surface.blit(card_images[img_key], rect)
+                if card == self.selected_card:
+                    pygame.draw.rect(surface, RED, rect, 4, border_radius=5)
+                    
+            if len(self.placed_this_turn) == req:
+                self.btn_confirm.draw(surface)
+
+def main():
+    gui = GameGUI()
+    running = True
+    
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+                
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if gui.show_results:
+                    if gui.btn_next.is_clicked(event):
+                        gui.show_results = False
+                        gui.game_round += 1
+                        gui.build_round_actions()
+                        gui.next_action()
+                elif gui.current_action and gui.current_action['type'] == 'turn':
+                    if gui.waiting_for_turn_start:
+                        gui.waiting_for_turn_start = False
+                    else:
+                        req = gui.current_action['place']
+                        if len(gui.placed_this_turn) == req and gui.btn_confirm.is_clicked(event):
+                            player = gui.current_action['player']
+                            # Register placed cards as hidden for the opponent
+                            for c in gui.placed_this_turn:
+                                gui.hidden_cards[player.name].append(c)
+                            
+                            gui.next_action()
+                        else:
+                            gui.handle_click(event.pos)
+                        
+        gui.draw(screen)
+        pygame.display.flip()
+        clock.tick(FPS)
+        
+    pygame.quit()
+    sys.exit()
+
+if __name__ == "__main__":
+    main()
