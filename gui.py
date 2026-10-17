@@ -377,4 +377,13 @@ def main():
     sys.exit()
 
 if __name__ == "__main__":
-    main()
+    if '--smoke-test' in sys.argv:
+        # Used by packaging checks with SDL_VIDEODRIVER=dummy.
+        if len(card_images) != 53:
+            raise RuntimeError(f'Expected 53 bundled images, loaded {len(card_images)}')
+        gui = GameGUI()
+        gui.waiting_for_turn_start = False
+        gui.draw(screen)
+        pygame.quit()
+    else:
+        main()

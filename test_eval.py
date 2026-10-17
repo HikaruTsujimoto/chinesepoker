@@ -1,27 +1,33 @@
 from card import Card
-from evaluator import check_validity, evaluate_hand
+from evaluator import check_validity, evaluate_hand, HandRank
+import unittest
 
-# Test valid placement (Same hand type, but distinct strength)
-# Bot: Two Pair (A, K)
-bot = [Card('♠', 'A'), Card('♥', 'A'), Card('♣', 'K'), Card('♦', 'K'), Card('♠', '5')]
-# Mid: Two Pair (Q, J)
-mid = [Card('♠', 'Q'), Card('♥', 'Q'), Card('♣', 'J'), Card('♦', 'J'), Card('♠', '9')]
-# Top: Pair (T)
-top = [Card('♠', 'T'), Card('♥', 'T'), Card('♣', '2')]
+class EvaluationTests(unittest.TestCase):
+    def test_legacy_symbol_hands(self):
+        # Test valid placement (Same hand type, but distinct strength)
+        # Bot: Two Pair (A, K)
+        bot = [Card('♠', 'A'), Card('♥', 'A'), Card('♣', 'K'), Card('♦', 'K'), Card('♠', '5')]
+        # Mid: Two Pair (Q, J)
+        mid = [Card('♠', 'Q'), Card('♥', 'Q'), Card('♣', 'J'), Card('♦', 'J'), Card('♠', '9')]
+        # Top: Pair (T)
+        top = [Card('♠', 'T'), Card('♥', 'T'), Card('♣', '2')]
 
-print("Is valid (should be True):", check_validity(top, mid, bot))
+        self.assertTrue(check_validity(top, mid, bot))
 
-# Test foul (Mid stronger than Bot)
-# Bot: Two Pair (Q, J)
-bot2 = [Card('♠', 'Q'), Card('♥', 'Q'), Card('♣', 'J'), Card('♦', 'J'), Card('♠', '9')]
-# Mid: Two Pair (A, K)
-mid2 = [Card('♠', 'A'), Card('♥', 'A'), Card('♣', 'K'), Card('♦', 'K'), Card('♠', '5')]
+        # Test foul (Mid stronger than Bot)
+        # Bot: Two Pair (Q, J)
+        bot2 = [Card('♠', 'Q'), Card('♥', 'Q'), Card('♣', 'J'), Card('♦', 'J'), Card('♠', '9')]
+        # Mid: Two Pair (A, K)
+        mid2 = [Card('♠', 'A'), Card('♥', 'A'), Card('♣', 'K'), Card('♦', 'K'), Card('♠', '5')]
 
-print("Is valid (should be False):", check_validity(top, mid2, bot2))
+        self.assertFalse(check_validity(top, mid2, bot2))
 
-# Test straight behavior
-bot_str = [Card('♠', 'A'), Card('♥', 'K'), Card('♣', 'Q'), Card('♦', 'J'), Card('♠', 'T')]
-bot_str_low = [Card('♠', '5'), Card('♥', '4'), Card('♣', '3'), Card('♦', '2'), Card('♠', 'A')]
+        # Test straight behavior
+        bot_str = [Card('♠', 'A'), Card('♥', 'K'), Card('♣', 'Q'), Card('♦', 'J'), Card('♠', 'T')]
+        bot_str_low = [Card('♠', '5'), Card('♥', '4'), Card('♣', '3'), Card('♦', '2'), Card('♠', 'A')]
 
-print("High Straight:", evaluate_hand(bot_str))
-print("Low Straight:", evaluate_hand(bot_str_low))
+        self.assertEqual(evaluate_hand(bot_str), (HandRank.STRAIGHT, [14], []))
+        self.assertEqual(evaluate_hand(bot_str_low), (HandRank.STRAIGHT, [5], []))
+
+if __name__ == '__main__':
+    unittest.main()
