@@ -13,6 +13,7 @@ class SearchConfig:
     samples: int = 64
     shortlist: int = 16
     fantasy_bottoms: int = 384
+    opponent_aware_final: bool = True
 
 
 LEVELS = {
@@ -72,11 +73,7 @@ def choose_move(observation, difficulty='normal', seed=None, config=None):
     best = ranked[0]
     # Final-street placements are all evaluated, without pruning.
     if complete(after_move(observation.board, best)):
-        opponent = observation.opponent if complete(observation.opponent) else None
-        best = max(moves, key=lambda m: (terminal_value(after_move(observation.board, m), opponent),
-                                         not summary(after_move(observation.board, m))[0]))
-        value = terminal_value(after_move(observation.board, best), opponent)
-        return Decision(best, len(moves), 0, time.monotonic() - start, value, 'final-street enumeration')
+        return final_street(observation, moves, config, rng, start, deadline)
     candidates = ranked[:config.shortlist]
     totals = [0.0] * len(candidates)
     simulations = 0
@@ -111,6 +108,41 @@ def choose_move(observation, difficulty='normal', seed=None, config=None):
     validate_move(observation, best)
     return Decision(best, len(moves), simulations, time.monotonic() - start, value,
                     f'rollouts ({batches} complete batches)' if batches else 'heuristic fallback')
+
+
+def final_street(obs, moves, config, rng, start, deadline):
+    """Score every own placement against the same sampled opponent outcomes."""
+    boards = [after_move(obs.board, move) for move in moves]
+    known_opponent = obs.opponent if complete(obs.opponent) else None
+    values = [terminal_value(board, known_opponent) for board in boards]
+    totals = [0.0] * len(boards)
+    batches = 0
+    if known_opponent is None and config.opponent_aware_final:
+        unseen = list(obs.unseen())
+        for _ in range(config.samples):
+            if time.monotonic() >= deadline:
+                break
+            rng.shuffle(unseen)
+            opponent = opponent_completion(obs.opponent, tuple(unseen))
+            batch = []
+            for board in boards:
+                if time.monotonic() >= deadline:
+                    break
+                batch.append(terminal_value(board, opponent))
+            # Only compare equally sampled alternatives; retain a legal fallback.
+            if len(batch) != len(boards):
+                break
+            totals = [a + b for a, b in zip(totals, batch)]
+            batches += 1
+    if batches:
+        values = [total / batches for total in totals]
+    index = max(range(len(moves)), key=lambda i: (values[i], not summary(boards[i])[0]))
+    validate_move(obs, moves[index])
+    method = 'final-street enumeration'
+    if batches:
+        method += f' + opponent sampling ({batches} batches)'
+    return Decision(moves[index], len(moves), batches * len(moves),
+                    time.monotonic() - start, values[index], method)
 
 
 def fantasy_move(obs, config, rng, start, deadline):

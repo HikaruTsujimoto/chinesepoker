@@ -67,7 +67,7 @@ class CpuTests(unittest.TestCase):
         obs = Observation(board, (4, 14, 16))
         result = choose_move(obs, 'normal', seed=0)
         self.assertFalse(summary(validate_move(obs, result.move))[0])
-        self.assertEqual(result.method, 'final-street enumeration')
+        self.assertTrue(result.method.startswith('final-street enumeration'))
 
     def test_fantasy_all_tiers_and_zero_budget(self):
         for tier in (14, 15, 16, 17):
