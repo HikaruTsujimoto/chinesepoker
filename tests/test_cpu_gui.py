@@ -29,6 +29,20 @@ class InlineExecutor:
 
 @unittest.skipIf(pygame is None, 'Install requirements/runtime.txt for GUI tests')
 class CpuGuiTests(unittest.TestCase):
+    def test_menu_exit_waits_for_both_next_fl_rights_to_end(self):
+        from chinesepoker.ui.gui import GameGUI
+        gui = GameGUI('easy',executor=InlineExecutor())
+        self.assertTrue(gui.can_return_to_menu())
+        gui.p1.fantasyland = True
+        self.assertFalse(gui.can_return_to_menu())
+        gui.show_results = True
+        gui.p1.next_fantasyland = False
+        gui.p2.next_fantasyland = True
+        self.assertFalse(gui.can_return_to_menu())
+        gui.p2.next_fantasyland = False
+        self.assertTrue(gui.can_return_to_menu())
+        gui.close()
+
     def test_normal_and_fantasy_rounds_finish_and_reset(self):
         from chinesepoker.ui.gui import GameGUI, screen
         for tiers in ((0, 0), (14, 0), (0, 17), (15, 16)):

@@ -10,6 +10,7 @@ from chinesepoker.ai.learned import choose_learned
 from chinesepoker.ai.training_games import observation_data, move_data
 from chinesepoker.core.player import Player
 from chinesepoker.core.game import Game
+from chinesepoker.core.session_rules import can_settle
 
 # --- Constants & Colors ---
 WIDTH, HEIGHT = 1280, 900
@@ -245,6 +246,10 @@ class GameGUI:
             self.executor.shutdown(wait=False, cancel_futures=True)
             self.executor = None
 
+    def can_return_to_menu(self):
+        rights = [p.next_fantasyland if self.show_results else p.fantasyland for p in (self.p1,self.p2)]
+        return can_settle(rights)
+
     def get_row_rects(self, player_idx):
         # Returns dict of rects for top, mid, bot for a player
         # p1 (left), p2 (right)
@@ -444,8 +449,9 @@ def main(strategy_path=None):
                 if event.type == pygame.QUIT:
                     running = False
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE and gui:
-                    gui.close()
-                    gui = None
+                    if gui.can_return_to_menu():
+                        gui.close()
+                        gui = None
                     continue
                 if gui and event.type == pygame.KEYDOWN and event.key == pygame.K_r and gui.cpu_error:
                     gui.close()
@@ -481,7 +487,8 @@ def main(strategy_path=None):
             if gui:
                 gui.update_cpu()
                 gui.draw(screen)
-                draw_text(screen, "Esc: menu", font, WHITE, 15, HEIGHT - 40)
+                help_text = 'Esc: menu' if gui.can_return_to_menu() else 'FL active: continue until both players leave Fantasyland'
+                draw_text(screen, help_text, font, WHITE, 15, HEIGHT - 40)
             else:
                 draw_menu(screen, buttons)
             pygame.display.flip()

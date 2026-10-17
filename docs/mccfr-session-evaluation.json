@@ -1,0 +1,297 @@
+{
+  "pairs": 20,
+  "seed": 20261021,
+  "sessions": 40,
+  "settled_sessions": 40,
+  "mean_points": -6.575,
+  "trained_information_set_hits": 0,
+  "decisions": 215,
+  "coverage": 0.0,
+  "exploitability": null,
+  "equilibrium_certified": false,
+  "scope": "Sessions vs Easy until both FL rights vanish. Learned side uses saved average or uniform on unseen sets; opponent is unrestricted Easy. No mean score when any session is censored. Not a best-response bound.",
+  "records": [
+    {
+      "pair": 0,
+      "learned_seat": 0,
+      "hands": 1,
+      "settled": true,
+      "points": -12.0
+    },
+    {
+      "pair": 0,
+      "learned_seat": 1,
+      "hands": 1,
+      "settled": true,
+      "points": -0.0
+    },
+    {
+      "pair": 1,
+      "learned_seat": 0,
+      "hands": 1,
+      "settled": true,
+      "points": -5.0
+    },
+    {
+      "pair": 1,
+      "learned_seat": 1,
+      "hands": 1,
+      "settled": true,
+      "points": -6.0
+    },
+    {
+      "pair": 2,
+      "learned_seat": 0,
+      "hands": 1,
+      "settled": true,
+      "points": -6.0
+    },
+    {
+      "pair": 2,
+      "learned_seat": 1,
+      "hands": 1,
+      "settled": true,
+      "points": -5.0
+    },
+    {
+      "pair": 3,
+      "learned_seat": 0,
+      "hands": 1,
+      "settled": true,
+      "points": -10.0
+    },
+    {
+      "pair": 3,
+      "learned_seat": 1,
+      "hands": 1,
+      "settled": true,
+      "points": -0.0
+    },
+    {
+      "pair": 4,
+      "learned_seat": 0,
+      "hands": 1,
+      "settled": true,
+      "points": 6.0
+    },
+    {
+      "pair": 4,
+      "learned_seat": 1,
+      "hands": 1,
+      "settled": true,
+      "points": -12.0
+    },
+    {
+      "pair": 5,
+      "learned_seat": 0,
+      "hands": 1,
+      "settled": true,
+      "points": 0.0
+    },
+    {
+      "pair": 5,
+      "learned_seat": 1,
+      "hands": 1,
+      "settled": true,
+      "points": -8.0
+    },
+    {
+      "pair": 6,
+      "learned_seat": 0,
+      "hands": 2,
+      "settled": true,
+      "points": -37.0
+    },
+    {
+      "pair": 6,
+      "learned_seat": 1,
+      "hands": 1,
+      "settled": true,
+      "points": -6.0
+    },
+    {
+      "pair": 7,
+      "learned_seat": 0,
+      "hands": 1,
+      "settled": true,
+      "points": -10.0
+    },
+    {
+      "pair": 7,
+      "learned_seat": 1,
+      "hands": 1,
+      "settled": true,
+      "points": -6.0
+    },
+    {
+      "pair": 8,
+      "learned_seat": 0,
+      "hands": 1,
+      "settled": true,
+      "points": 0.0
+    },
+    {
+      "pair": 8,
+      "learned_seat": 1,
+      "hands": 1,
+      "settled": true,
+      "points": -6.0
+    },
+    {
+      "pair": 9,
+      "learned_seat": 0,
+      "hands": 1,
+      "settled": true,
+      "points": -8.0
+    },
+    {
+      "pair": 9,
+      "learned_seat": 1,
+      "hands": 1,
+      "settled": true,
+      "points": -0.0
+    },
+    {
+      "pair": 10,
+      "learned_seat": 0,
+      "hands": 1,
+      "settled": true,
+      "points": -6.0
+    },
+    {
+      "pair": 10,
+      "learned_seat": 1,
+      "hands": 1,
+      "settled": true,
+      "points": -10.0
+    },
+    {
+      "pair": 11,
+      "learned_seat": 0,
+      "hands": 1,
+      "settled": true,
+      "points": -8.0
+    },
+    {
+      "pair": 11,
+      "learned_seat": 1,
+      "hands": 1,
+      "settled": true,
+      "points": -6.0
+    },
+    {
+      "pair": 12,
+      "learned_seat": 0,
+      "hands": 1,
+      "settled": true,
+      "points": 0.0
+    },
+    {
+      "pair": 12,
+      "learned_seat": 1,
+      "hands": 1,
+      "settled": true,
+      "points": -6.0
+    },
+    {
+      "pair": 13,
+      "learned_seat": 0,
+      "hands": 1,
+      "settled": true,
+      "points": -6.0
+    },
+    {
+      "pair": 13,
+      "learned_seat": 1,
+      "hands": 1,
+      "settled": true,
+      "points": -12.0
+    },
+    {
+      "pair": 14,
+      "learned_seat": 0,
+      "hands": 1,
+      "settled": true,
+      "points": 0.0
+    },
+    {
+      "pair": 14,
+      "learned_seat": 1,
+      "hands": 1,
+      "settled": true,
+      "points": 6.0
+    },
+    {
+      "pair": 15,
+      "learned_seat": 0,
+      "hands": 1,
+      "settled": true,
+      "points": 1.0
+    },
+    {
+      "pair": 15,
+      "learned_seat": 1,
+      "hands": 1,
+      "settled": true,
+      "points": -10.0
+    },
+    {
+      "pair": 16,
+      "learned_seat": 0,
+      "hands": 2,
+      "settled": true,
+      "points": -28.0
+    },
+    {
+      "pair": 16,
+      "learned_seat": 1,
+      "hands": 1,
+      "settled": true,
+      "points": 6.0
+    },
+    {
+      "pair": 17,
+      "learned_seat": 0,
+      "hands": 1,
+      "settled": true,
+      "points": 0.0
+    },
+    {
+      "pair": 17,
+      "learned_seat": 1,
+      "hands": 1,
+      "settled": true,
+      "points": 6.0
+    },
+    {
+      "pair": 18,
+      "learned_seat": 0,
+      "hands": 1,
+      "settled": true,
+      "points": -8.0
+    },
+    {
+      "pair": 18,
+      "learned_seat": 1,
+      "hands": 2,
+      "settled": true,
+      "points": -38.0
+    },
+    {
+      "pair": 19,
+      "learned_seat": 0,
+      "hands": 1,
+      "settled": true,
+      "points": -7.0
+    },
+    {
+      "pair": 19,
+      "learned_seat": 1,
+      "hands": 1,
+      "settled": true,
+      "points": -6.0
+    }
+  ],
+  "game": "ofc-until-both-fl-end-v1:[16,[0,0]]",
+  "iterations": 1000
+}
