@@ -1,7 +1,7 @@
 # Chinese Poker — Pineapple OFC
 
 Python / Pygame で遊ぶ、2人用の Pineapple Open Face Chinese Poker です。
-現在は同じ PC を交代で操作する対人戦に対応しています。CPU 対戦は未実装です。
+GUI は CPU 対戦（Easy / Normal / Hard）と、同じ PC を交代で操作する2人対戦に対応しています。
 
 ## Windows で遊ぶ
 
@@ -21,6 +21,16 @@ python -m venv .venv
 
 ターミナル版は `python -m chinesepoker --terminal` で起動します。
 `assets/` の画像は同梱済みです。再取得が必要な開発時のみ `python tools/download_assets.py` を実行します。
+
+## CPU 対戦
+
+起動後に CPU - Easy / Normal / Hard を選ぶと、Player 1 が自分、CPU が相手になります。
+Normal は約1.5秒、Hard は約5秒を目安に未知の配牌をシミュレーションします。
+思考中も画面は動作し、Esc でメニューに戻れます。CPU の手札は表示しません。
+Two players を選ぶと従来の2人対戦です。ターミナル版は対人戦のままです。
+
+CPU はナッシュ均衡を解いたものではありません。探索の範囲、検証結果の読み方、
+既知の限界と今後の均衡計算への方針は [CPU の設計と検証](docs/CPU.md) を参照してください。
 
 ## 操作
 
@@ -60,7 +70,7 @@ python -m venv .venv
 python -m unittest discover -v
 ```
 
-役判定、表記の変換、ファンタジーランド進入・継続、通常手番が先になる進行を確認します。
+役判定・表記変換・ファンタジーランド進入と継続・手番順に加え、CPU の合法手、非公開情報の境界、GUI の CPU 対戦進行を確認します。GUI テストには requirements/runtime.txt のインストールが必要です。
 配布前には Python 未導入の Windows でも手動で起動・対局を確認してください。
 
 ## フォルダ構成
@@ -69,11 +79,13 @@ python -m unittest discover -v
 chinesepoker/
 ├── chinesepoker/        # ゲーム本体の Python パッケージ
 │   ├── __main__.py      # python -m chinesepoker の起動口
+│   ├── ai/              # CPU の情報境界・評価・探索
 │   ├── core/            # カード・役判定・プレイヤー・得点精算
 │   └── ui/              # 画面版 (gui.py)・ターミナル版 (cli.py)
+├── docs/                # CPU の設計・性能測定
 ├── assets/              # 同梱カード画像・ライセンス
 ├── tests/               # 自動テスト
-├── tools/               # ビルド・画像再取得スクリプト
+├── tools/               # ビルド・画像再取得・CPU 性能測定
 ├── packaging/           # PyInstaller 設定と実行ファイルの起動口
 ├── requirements/        # 実行時・ビルド時の依存関係
 └── README.md
