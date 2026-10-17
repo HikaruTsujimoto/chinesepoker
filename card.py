@@ -5,6 +5,10 @@ class Card:
     RANKS = ('2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A')
 
     def __init__(self, suit, rank):
+        suit = {'♠': 'S', '♥': 'H', '♦': 'D', '♣': 'C'}.get(suit, suit)
+        suit = suit.upper()
+        rank = rank.upper()
+        rank = '10' if rank == 'T' else rank
         if suit not in self.SUITS:
             raise ValueError(f"Invalid suit: {suit}")
         if rank not in self.RANKS:

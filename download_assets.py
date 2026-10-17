@@ -1,49 +1,29 @@
-import os
-import requests
+"""Restore bundled images from a pinned upstream revision."""
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+from urllib.request import urlopen
+
+REVISION = 'fa7d8f08e1ba1f2304216374585e65a614e1fb8d'
+BASE = f'https://raw.githubusercontent.com/crobertsbmw/deckofcards/{REVISION}'
+ASSETS = Path(__file__).resolve().parent / 'assets'
 
 def download_cards():
-    assets_dir = 'assets'
-    if not os.path.exists(assets_dir):
-        os.makedirs(assets_dir)
-        
-    suits = ['S', 'H', 'D', 'C']
-    ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '0', 'J', 'Q', 'K', 'A']
-    
-    base_url = "https://deckofcardsapi.com/static/img/"
-    
-    # Also get a card back
-    back_url = "https://deckofcardsapi.com/static/img/back.png"
-    print("Downloading card back...")
-    try:
-        r = requests.get(back_url)
-        with open(os.path.join(assets_dir, 'back.png'), 'wb') as f:
-            f.write(r.content)
-    except Exception as e:
-        print(f"Error downloading back: {e}")
-        
-    for suit in suits:
-        for rank in ranks:
-            card_code = f"{rank}{suit}"
-            # Handle special case for 10
-            # Wait, our game uses '10' for rank, so let's save the file as 10S.png instead of 0S.png to match our code
-            save_name = f"10{suit}.png" if rank == '0' else f"{card_code}.png"
-            file_path = os.path.join(assets_dir, save_name)
-            
-            if os.path.exists(file_path):
-                continue
-                
-            url = f"{base_url}{card_code}.png"
-            print(f"Downloading {card_code}...")
-            try:
-                r = requests.get(url)
-                if r.status_code == 200:
-                    with open(file_path, 'wb') as f:
-                        f.write(r.content)
-                else:
-                    print(f"Failed to find {card_code} at {url}")
-            except Exception as e:
-                print(f"Error downloading {card_code}: {e}")
-                
-if __name__ == "__main__":
+    ASSETS.mkdir(exist_ok=True)
+    files = [(f'{r}{s}.png', f'{"0" if r == "10" else r}{s}.png')
+             for s in 'SHDC' for r in ('2','3','4','5','6','7','8','9','10','J','Q','K','A')]
+    files.append(('back.png', 'back.png'))
+    def download(entry):
+        name, upstream = entry
+        with urlopen(f'{BASE}/static/img/{upstream}', timeout=30) as response:
+            data = response.read()
+        if not data.startswith(bytes.fromhex('89504e470d0a1a0a')):
+            raise ValueError(f'Invalid PNG: {name}')
+        (ASSETS / name).write_bytes(data)
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        list(pool.map(download, files))
+    with urlopen(f'{BASE}/LICENSE.txt', timeout=30) as response:
+        (ASSETS / 'LICENSE-deckofcards.txt').write_bytes(response.read())
+    print('Restored 52 cards, one back, and license.')
+
+if __name__ == '__main__':
     download_cards()
-    print("Download complete.")

@@ -79,6 +79,7 @@ class TestFantasyland(unittest.TestCase):
     def test_stay_in_fantasyland_weak_top_strong_bot(self):
         player = Player("P1")
         player.fantasyland = True # Already in fantasyland
+        player.fantasyland_cards = 14
         # Top: Pair 2
         player.top = [Card('S', '2'), Card('H', '2'), Card('D', '3')]
         player.mid = [Card('S', '4'), Card('H', '5'), Card('C', '6'), Card('D', '7'), Card('C', '8')] # Straight
@@ -87,7 +88,29 @@ class TestFantasyland(unittest.TestCase):
         player.evaluate_board()
         self.assertFalse(player.is_foul)
         self.assertTrue(player.next_fantasyland)
-        self.assertEqual(player.next_fantasyland_cards, 14) # Default to 14 if staying via bot but top doesn't give progressive bonus
+        self.assertEqual(player.next_fantasyland_cards, 14) # Preserve the current tier
+
+    def test_continuation_preserves_every_tier(self):
+        for tier in (14, 15, 16, 17):
+            for reason in ('top', 'mid', 'bot'):
+                with self.subTest(tier=tier, reason=reason):
+                    p = Player('P1')
+                    p.fantasyland = True
+                    p.fantasyland_cards = tier
+                    if reason == 'top':
+                        p.top = [Card(s, 'A') for s in 'SHD']
+                        p.mid = [Card(s, r) for s, r in [('S','2'),('H','3'),('D','4'),('C','5'),('S','6')]]
+                        p.bot = [Card(s, r) for s, r in [('S','7'),('H','8'),('D','9'),('C','10'),('S','J')]]
+                    else:
+                        p.top = [Card(s, r) for s, r in [('S','2'),('H','2'),('D','3')]]
+                        p.mid = ([Card(s, r) for s, r in [('S','4'),('H','4'),('C','4'),('D','5'),('C','5')]]
+                                 if reason == 'mid' else
+                                 [Card(s, r) for s, r in [('S','4'),('H','5'),('C','6'),('D','7'),('C','8')]])
+                        p.bot = [Card(s, r) for s, r in [('S','A'),('H','A'),('C','A'),('D','A'),('C','9')]]
+                    p.evaluate_board()
+                    self.assertFalse(p.is_foul)
+                    self.assertTrue(p.next_fantasyland)
+                    self.assertEqual(p.next_fantasyland_cards, tier)
 
 if __name__ == '__main__':
     unittest.main()
