@@ -1,6 +1,6 @@
 import unittest
-from player import Player
-from card import Card
+from chinesepoker.core.player import Player
+from chinesepoker.core.card import Card
 
 class TestFantasyland(unittest.TestCase):
     

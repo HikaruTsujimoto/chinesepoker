@@ -1,5 +1,5 @@
-from card import Card
-from evaluator import check_validity, evaluate_hand, HandRank
+from chinesepoker.core.card import Card
+from chinesepoker.core.evaluator import check_validity, evaluate_hand, HandRank
 import unittest
 
 class EvaluationTests(unittest.TestCase):

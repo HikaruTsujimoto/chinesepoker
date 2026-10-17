@@ -1,5 +1,5 @@
-from card import Deck
-from evaluator import evaluate_hand, compare_hands, get_hand_name
+from chinesepoker.core.card import Deck
+from chinesepoker.core.evaluator import evaluate_hand, compare_hands, get_hand_name
 
 class Game:
     def __init__(self, players):

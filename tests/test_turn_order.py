@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import patch
-from game import Game
-from player import Player
-from main import play_round
+from chinesepoker.core.game import Game
+from chinesepoker.core.player import Player
+from chinesepoker.ui.cli import play_round
 
 
 class TurnOrderTests(unittest.TestCase):
@@ -24,7 +24,7 @@ class TurnOrderTests(unittest.TestCase):
                 expected = [(name, 5, 5) for name in normal]
                 expected += [(name, 3, 2) for _ in range(4) for name in normal]
                 expected += [(p.name, tier, 13) for p, tier in zip(players, tiers) if tier]
-                with patch('main.clear_screen'), patch('builtins.input', return_value=''), patch('builtins.print'), patch('main.prompt_placement', side_effect=place), patch.object(game, 'resolve_scores', return_value=''):
+                with patch('chinesepoker.ui.cli.clear_screen'), patch('builtins.input', return_value=''), patch('builtins.print'), patch('chinesepoker.ui.cli.prompt_placement', side_effect=place), patch.object(game, 'resolve_scores', return_value=''):
                     play_round(game)
                 self.assertEqual(calls, expected)
 

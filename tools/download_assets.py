@@ -5,7 +5,7 @@ from urllib.request import urlopen
 
 REVISION = 'fa7d8f08e1ba1f2304216374585e65a614e1fb8d'
 BASE = f'https://raw.githubusercontent.com/crobertsbmw/deckofcards/{REVISION}'
-ASSETS = Path(__file__).resolve().parent / 'assets'
+ASSETS = Path(__file__).resolve().parents[1] / 'assets'
 
 def download_cards():
     ASSETS.mkdir(exist_ok=True)

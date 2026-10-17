@@ -1,4 +1,4 @@
-from evaluator import evaluate_hand, check_validity, HandRank
+from chinesepoker.core.evaluator import evaluate_hand, check_validity, HandRank
 
 class Player:
     def __init__(self, name):
