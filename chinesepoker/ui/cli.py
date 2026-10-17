@@ -1,6 +1,6 @@
 import os
-from player import Player
-from game import Game
+from chinesepoker.core.player import Player
+from chinesepoker.core.game import Game
 
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')

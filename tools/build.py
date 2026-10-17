@@ -3,7 +3,7 @@ from pathlib import Path
 import subprocess
 import sys
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 
 def main():
     expected = [f'{r}{s}.png' for s in 'SHDC'
@@ -13,7 +13,7 @@ def main():
     if missing:
         raise SystemExit('Missing bundled assets: ' + ', '.join(missing))
     result = subprocess.run(
-        [sys.executable, '-m', 'PyInstaller', '--noconfirm', 'gui.spec'],
+        [sys.executable, '-m', 'PyInstaller', '--noconfirm', str(ROOT / 'packaging' / 'ChinesePoker.spec')],
         cwd=ROOT, capture_output=True, text=True, encoding='utf-8', errors='replace')
     (ROOT / 'build_log.txt').write_text(result.stdout + result.stderr, encoding='utf-8')
     print('Build failed: see build_log.txt' if result.returncode else str(ROOT / 'dist' / 'ChinesePoker.exe'))

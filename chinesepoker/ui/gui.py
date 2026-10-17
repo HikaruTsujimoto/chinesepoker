@@ -1,8 +1,8 @@
 import pygame
 import os
 import sys
-from player import Player
-from game import Game
+from chinesepoker.core.player import Player
+from chinesepoker.core.game import Game
 
 # --- Constants & Colors ---
 WIDTH, HEIGHT = 1280, 900
@@ -29,7 +29,7 @@ def resource_path(relative_path):
     try:
         base_path = sys._MEIPASS
     except AttributeError:
-        base_path = os.path.dirname(os.path.abspath(__file__))
+        base_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     return os.path.join(base_path, relative_path)
 
 # --- Asset Loading ---
@@ -376,14 +376,18 @@ def main():
     pygame.quit()
     sys.exit()
 
+def smoke_test():
+    """Verify bundled assets and initial drawing without a game loop."""
+    if len(card_images) != 53:
+        raise RuntimeError(f'Expected 53 bundled images, loaded {len(card_images)}')
+    gui = GameGUI()
+    gui.waiting_for_turn_start = False
+    gui.draw(screen)
+    pygame.quit()
+
+
 if __name__ == "__main__":
     if '--smoke-test' in sys.argv:
-        # Used by packaging checks with SDL_VIDEODRIVER=dummy.
-        if len(card_images) != 53:
-            raise RuntimeError(f'Expected 53 bundled images, loaded {len(card_images)}')
-        gui = GameGUI()
-        gui.waiting_for_turn_start = False
-        gui.draw(screen)
-        pygame.quit()
+        smoke_test()
     else:
         main()

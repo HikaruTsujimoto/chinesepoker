@@ -15,12 +15,12 @@ Python 3.10 の Windows 環境で動作確認しています。
 
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\python -m pip install -r requirements.txt
-.\.venv\Scripts\python gui.py
+.\.venv\Scripts\python -m pip install -r requirements/runtime.txt
+.\.venv\Scripts\python -m chinesepoker
 ```
 
-ターミナル版は `python main.py` で起動します。
-`assets/` の画像は同梱済みです。再取得が必要な開発時のみ `python download_assets.py` を実行します。
+ターミナル版は `python -m chinesepoker --terminal` で起動します。
+`assets/` の画像は同梱済みです。再取得が必要な開発時のみ `python tools/download_assets.py` を実行します。
 
 ## 操作
 
@@ -47,11 +47,11 @@ python -m venv .venv
 ## Windows 実行ファイルのビルド
 
 ```powershell
-.\.venv\Scripts\python -m pip install -r requirements-build.txt
-.\.venv\Scripts\python build.py
+.\.venv\Scripts\python -m pip install -r requirements/build.txt
+.\.venv\Scripts\python tools/build.py
 ```
 
-出力は `dist/ChinesePoker.exe` です。`gui.spec` で画像と画像ライセンスを同梱します。
+出力は `dist/ChinesePoker.exe` です。`packaging/ChinesePoker.spec` で画像と画像ライセンスを同梱します。
 必要な画像が不足している場合はビルドを中止します。詳細ログは `build_log.txt` に保存します。
 
 ## テスト
@@ -63,17 +63,25 @@ python -m unittest discover -v
 役判定、表記の変換、ファンタジーランド進入・継続、通常手番が先になる進行を確認します。
 配布前には Python 未導入の Windows でも手動で起動・対局を確認してください。
 
-## 主なファイル
+## フォルダ構成
 
-| ファイル | 役割 |
-|---|---|
-| gui.py / main.py | 画面版 / ターミナル版 |
-| card.py | カード・山札・表記変換 |
-| evaluator.py | 役判定・盤面の有効性判定 |
-| player.py | プレイヤー・ロイヤリティ・ファンタジーランド |
-| game.py | 得点精算 |
-| assets/ | 同梱画像とライセンス |
-| build.py / gui.spec | 実行ファイルのビルド |
+```text
+chinesepoker/
+├── chinesepoker/        # ゲーム本体の Python パッケージ
+│   ├── __main__.py      # python -m chinesepoker の起動口
+│   ├── core/            # カード・役判定・プレイヤー・得点精算
+│   └── ui/              # 画面版 (gui.py)・ターミナル版 (cli.py)
+├── assets/              # 同梱カード画像・ライセンス
+├── tests/               # 自動テスト
+├── tools/               # ビルド・画像再取得スクリプト
+├── packaging/           # PyInstaller 設定と実行ファイルの起動口
+├── requirements/        # 実行時・ビルド時の依存関係
+└── README.md
+```
+
+コマンドはリポジトリのルートで実行します。以前の `python gui.py` は
+`python -m chinesepoker`、`python main.py` は `python -m chinesepoker --terminal` に変更しました。
+Python ファイルの整理に伴う起動方法の変更で、ゲームルールは変更していません。
 
 ## カード画像
 

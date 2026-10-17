@@ -1,6 +1,6 @@
 import unittest
-from card import Card, Deck
-from evaluator import evaluate_hand, HandRank
+from chinesepoker.core.card import Card, Deck
+from chinesepoker.core.evaluator import evaluate_hand, HandRank
 
 
 class CardAliasTests(unittest.TestCase):
