@@ -56,14 +56,16 @@ FL中の相手の最適配置・同時意思決定の完全なモデル化はし
 
 ## ナッシュ均衡について
 
-今回のCPUは、ナッシュ均衡を求めたGTO戦略でも、厳密なISMCTS実装でもありません。
+通常の Easy / Normal / Hard は、ナッシュ均衡を求めたGTO戦略でも、厳密なISMCTS実装でもありません。
 現在ターンの候補列挙と、ヒューリスティックを使ったモンテカルロ継続評価です。
 局面の全網羅、均衡への収束、搾取されにくさ（exploitability）の上限は証明していません。
 
 全てを調べる場合、山札だけでも52!通りあり、さらに配牌ごとの配置、捨て札、
 非公開情報、FLの継続が加わります。現在の端末で3日計算すれば解けるという根拠はありません。
 
-均衡を目指す次の研究段階では、以下を別途行う必要があります。
+研究用MCCFR学習器を追加しました。対象ゲーム・保存再開・実測値は [MCCFR.md](MCCFR.md) に記載しています。
+小規模ゲームの検証と通常1ハンドの学習は実装済みですが、全ルールでの均衡は未達です。
+実戦向けの均衡を目指すために、以下の研究課題があります。
 
 1. 対局の終了条件・長期のFL価値を定義し、情報集合を持つ2人零和ゲームとしてモデル化する。
 2. スートの対称性などで状態を圧縮し、小さな部分ゲームでCFR/MCCFRの実装を検証する。
@@ -75,7 +77,7 @@ FL中の相手の最適配置・同時意思決定の完全なモデル化はし
 - [Cowling, Powley & Whitehouse (2012), Information Set Monte Carlo Tree Search](https://eprints.whiterose.ac.uk/id/eprint/75048/1/CowlingPowleyWhitehouse2012.pdf)
   は非公開情報下の探索と、単純な完全情報化による問題を扱っています。
 - [Lanctot et al. (2009), Monte Carlo Sampling for Regret Minimization in Extensive Games](https://proceedings.neurips.cc/paper/2009/hash/00411460f7c92d2124a67ea0f4cb5f85-Abstract.html)
-  はサンプリングによるCFRを扱います。今回の実装にMCCFR学習器は含まれていません。
+  はサンプリングによるCFRを扱います。追加した研究用学習器は Outcome Sampling MCCFR です。
 
 ## 検証の再現
 

@@ -1,0 +1,220 @@
+{
+  "pairs": 20,
+  "seed": 20261021,
+  "hands": 40,
+  "mean_points": -5.2,
+  "approximate_95_percent_paired_ci": [
+    -6.923122868820628,
+    -3.4768771311793722
+  ],
+  "trained_information_set_hits": 0,
+  "decisions": 200,
+  "coverage": 0.0,
+  "exploitability": null,
+  "equilibrium_certified": false,
+  "scope": "Single ordinary hand vs Easy; average strategy, UNIFORM on unseen sets. This is NOT GUI Normal fallback and NOT a best-response evaluation.",
+  "records": [
+    {
+      "pair": 0,
+      "learned_seat": 0,
+      "points": -12.0
+    },
+    {
+      "pair": 0,
+      "learned_seat": 1,
+      "points": -0.0
+    },
+    {
+      "pair": 1,
+      "learned_seat": 0,
+      "points": -5
+    },
+    {
+      "pair": 1,
+      "learned_seat": 1,
+      "points": -6.0
+    },
+    {
+      "pair": 2,
+      "learned_seat": 0,
+      "points": -6.0
+    },
+    {
+      "pair": 2,
+      "learned_seat": 1,
+      "points": -5
+    },
+    {
+      "pair": 3,
+      "learned_seat": 0,
+      "points": -10.0
+    },
+    {
+      "pair": 3,
+      "learned_seat": 1,
+      "points": -0.0
+    },
+    {
+      "pair": 4,
+      "learned_seat": 0,
+      "points": 6.0
+    },
+    {
+      "pair": 4,
+      "learned_seat": 1,
+      "points": -12.0
+    },
+    {
+      "pair": 5,
+      "learned_seat": 0,
+      "points": 0.0
+    },
+    {
+      "pair": 5,
+      "learned_seat": 1,
+      "points": -8.0
+    },
+    {
+      "pair": 6,
+      "learned_seat": 0,
+      "points": -16.0
+    },
+    {
+      "pair": 6,
+      "learned_seat": 1,
+      "points": -6
+    },
+    {
+      "pair": 7,
+      "learned_seat": 0,
+      "points": -10
+    },
+    {
+      "pair": 7,
+      "learned_seat": 1,
+      "points": -6.0
+    },
+    {
+      "pair": 8,
+      "learned_seat": 0,
+      "points": 0.0
+    },
+    {
+      "pair": 8,
+      "learned_seat": 1,
+      "points": -6.0
+    },
+    {
+      "pair": 9,
+      "learned_seat": 0,
+      "points": -8
+    },
+    {
+      "pair": 9,
+      "learned_seat": 1,
+      "points": -0.0
+    },
+    {
+      "pair": 10,
+      "learned_seat": 0,
+      "points": -6
+    },
+    {
+      "pair": 10,
+      "learned_seat": 1,
+      "points": -10.0
+    },
+    {
+      "pair": 11,
+      "learned_seat": 0,
+      "points": -8
+    },
+    {
+      "pair": 11,
+      "learned_seat": 1,
+      "points": -6.0
+    },
+    {
+      "pair": 12,
+      "learned_seat": 0,
+      "points": 0.0
+    },
+    {
+      "pair": 12,
+      "learned_seat": 1,
+      "points": -6.0
+    },
+    {
+      "pair": 13,
+      "learned_seat": 0,
+      "points": -6.0
+    },
+    {
+      "pair": 13,
+      "learned_seat": 1,
+      "points": -12
+    },
+    {
+      "pair": 14,
+      "learned_seat": 0,
+      "points": 0.0
+    },
+    {
+      "pair": 14,
+      "learned_seat": 1,
+      "points": 6.0
+    },
+    {
+      "pair": 15,
+      "learned_seat": 0,
+      "points": 1
+    },
+    {
+      "pair": 15,
+      "learned_seat": 1,
+      "points": -10.0
+    },
+    {
+      "pair": 16,
+      "learned_seat": 0,
+      "points": -13.0
+    },
+    {
+      "pair": 16,
+      "learned_seat": 1,
+      "points": 6.0
+    },
+    {
+      "pair": 17,
+      "learned_seat": 0,
+      "points": 0.0
+    },
+    {
+      "pair": 17,
+      "learned_seat": 1,
+      "points": 6.0
+    },
+    {
+      "pair": 18,
+      "learned_seat": 0,
+      "points": -8
+    },
+    {
+      "pair": 18,
+      "learned_seat": 1,
+      "points": -19.0
+    },
+    {
+      "pair": 19,
+      "learned_seat": 0,
+      "points": -7
+    },
+    {
+      "pair": 19,
+      "learned_seat": 1,
+      "points": -6.0
+    }
+  ],
+  "game": "pineapple-ofc-normal-one-hand-exact-v1",
+  "iterations": 1000
+}

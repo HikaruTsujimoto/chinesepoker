@@ -1,0 +1,69 @@
+{
+  "game": "ofc-public-pool-endgame-v1:[[[[37],[5,7,18,43,46],[8,22,28,34,47]],[[20,24,51],[2,9,45,48],[1,14,36,42]]],[0,3,4,6,10,12,15,49]]",
+  "algorithm": "outcome-sampling MCCFR",
+  "status": "iterations_complete",
+  "iterations": 100000,
+  "additional_iterations": 100000,
+  "information_sets": 112,
+  "seconds": 49.71799999999348,
+  "exploration": 0.6,
+  "curve": [
+    {
+      "iterations": 20000,
+      "information_sets": 112,
+      "value_player0": 2.915266524373999,
+      "best_response_player0": 2.960346431746914,
+      "best_response_player1": -2.695644327880642,
+      "nash_conv": 0.26470210386627224,
+      "exploitability": 0.13235105193313612,
+      "chance_outcomes": 560
+    },
+    {
+      "iterations": 40000,
+      "information_sets": 112,
+      "value_player0": 2.8864122457786254,
+      "best_response_player0": 2.9092251879847617,
+      "best_response_player1": -2.721799793139711,
+      "nash_conv": 0.1874253948450506,
+      "exploitability": 0.0937126974225253,
+      "chance_outcomes": 560
+    },
+    {
+      "iterations": 60000,
+      "information_sets": 112,
+      "value_player0": 2.8600449284057916,
+      "best_response_player0": 2.8755437616635504,
+      "best_response_player1": -2.7305178013422613,
+      "nash_conv": 0.14502596032128912,
+      "exploitability": 0.07251298016064456,
+      "chance_outcomes": 560
+    },
+    {
+      "iterations": 80000,
+      "information_sets": 112,
+      "value_player0": 2.838390738773465,
+      "best_response_player0": 2.850161061589725,
+      "best_response_player1": -2.735066438076829,
+      "nash_conv": 0.11509462351289601,
+      "exploitability": 0.057547311756448005,
+      "chance_outcomes": 560
+    },
+    {
+      "iterations": 100000,
+      "information_sets": 112,
+      "value_player0": 2.8215239833255574,
+      "best_response_player0": 2.831115659433027,
+      "best_response_player1": -2.7377277838400285,
+      "nash_conv": 0.09338787559299844,
+      "exploitability": 0.04669393779649922,
+      "chance_outcomes": 560
+    }
+  ],
+  "value_player0": 2.8215239833255574,
+  "best_response_player0": 2.831115659433027,
+  "best_response_player1": -2.7377277838400285,
+  "nash_conv": 0.09338787559299844,
+  "exploitability": 0.04669393779649922,
+  "chance_outcomes": 560,
+  "scope": "Fixed public boards and public 8-card pool; exact restricted endgame, not full-game exploitability."
+}

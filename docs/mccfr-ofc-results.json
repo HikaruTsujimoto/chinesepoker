@@ -1,0 +1,23 @@
+{
+  "game": "pineapple-ofc-normal-one-hand-exact-v1",
+  "algorithm": "outcome-sampling MCCFR",
+  "status": "iterations_complete",
+  "iterations": 1000,
+  "additional_iterations": 1000,
+  "information_sets": 19999,
+  "seconds": 7.312000000005355,
+  "exploration": 0.6,
+  "curve": [
+    {
+      "iterations": 500,
+      "information_sets": 9999
+    },
+    {
+      "iterations": 1000,
+      "information_sets": 19999
+    }
+  ],
+  "exploitability": null,
+  "equilibrium_certified": false,
+  "scope": "Exact 52-card normal single hand; no next-hand FL value. Full private/public recall and all legal actions. Training is not a convergence certificate."
+}

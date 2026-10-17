@@ -6,6 +6,8 @@ import multiprocessing
 from concurrent.futures import ProcessPoolExecutor
 from chinesepoker.ai.model import Observation, board_of, encode, apply_move
 from chinesepoker.ai.search import choose_move
+from chinesepoker.ai.learned import choose_learned
+from chinesepoker.ai.training_games import observation_data, move_data
 from chinesepoker.core.player import Player
 from chinesepoker.core.game import Game
 
@@ -87,8 +89,10 @@ class Button:
         return False
 
 class GameGUI:
-    def __init__(self, difficulty='normal', executor=None):
+    def __init__(self, difficulty='normal', executor=None, strategy_path=None):
         self.difficulty = difficulty
+        self.strategy_path = strategy_path
+        self.cpu_history = ()
         self.executor = executor
         self.cpu_future = None
         self.cpu_error = None
@@ -119,6 +123,7 @@ class GameGUI:
         self.next_action()
 
     def build_round_actions(self):
+        self.cpu_history = ()
         self.discards = []
         self.hidden_cards = {self.p1.name: [], self.p2.name: []}
         self.current_round_num = 1
@@ -208,7 +213,12 @@ class GameGUI:
         try:
             if self.executor is None:
                 self.executor = ProcessPoolExecutor(max_workers=1, mp_context=multiprocessing.get_context('spawn'))
-            self.cpu_future = self.executor.submit(choose_move, self.cpu_observation(), self.difficulty)
+            if self.difficulty == 'learned':
+                self.cpu_future = self.executor.submit(choose_learned, self.cpu_observation(),
+                    self.strategy_path, self.cpu_history, 1,
+                    not (self.p1.fantasyland or self.p2.fantasyland))
+            else:
+                self.cpu_future = self.executor.submit(choose_move, self.cpu_observation(), self.difficulty)
         except Exception as error:
             self.cpu_error = str(error)
 
@@ -218,8 +228,10 @@ class GameGUI:
         future, self.cpu_future = self.cpu_future, None
         try:
             decision = future.result()
+            observation = self.cpu_observation()
             hand = {encode(c): c for c in self.cards_in_hand}
             apply_move(self.p2, self.cards_in_hand, decision.move)
+            self.cpu_history += ((observation_data(observation), move_data(decision.move)),)
             self.hidden_cards[self.p2.name].extend(hand[c] for c, _ in decision.move.placements)
             self.discards.extend(decision.move.discards)
             self.last_cpu_decision = decision
@@ -405,9 +417,11 @@ class GameGUI:
             if len(self.placed_this_turn) == req:
                 self.btn_confirm.draw(surface)
 
-def menu_buttons():
+def menu_buttons(strategy_path=None):
     choices = [('CPU - Easy', 'easy'), ('CPU - Normal', 'normal'),
                ('CPU - Hard', 'hard'), ('Two players', None)]
+    if strategy_path:
+        choices.append(('CPU - Learned (test)', 'learned'))
     return [(Button(WIDTH // 2 - 150, 300 + i * 80, 300, 60, label,
                        (0, 110, 160), (0, 145, 200)), level) for i, (label, level) in enumerate(choices)]
 
@@ -420,9 +434,9 @@ def draw_menu(surface, buttons):
         button.draw(surface)
 
 
-def main():
+def main(strategy_path=None):
     gui = None
-    buttons = menu_buttons()
+    buttons = menu_buttons(strategy_path)
     running = True
     try:
         while running:
@@ -441,7 +455,7 @@ def main():
                 if gui is None:
                     for button, level in buttons:
                         if button.is_clicked(event):
-                            gui = GameGUI(level)
+                            gui = GameGUI(level, strategy_path=strategy_path)
                             break
                 elif gui.is_cpu_turn():
                     continue
@@ -488,11 +502,11 @@ def smoke_test():
     pygame.quit()
 
 
-def cpu_smoke_test():
+def cpu_smoke_test(strategy_path=None):
     """Exercise the real spawned worker, turn transitions and bundled images."""
     if len(card_images) != 53:
         raise RuntimeError('Missing bundled images')
-    gui = GameGUI('easy')
+    gui = GameGUI('learned' if strategy_path else 'easy', strategy_path=strategy_path)
     deadline = time.monotonic() + 60
     try:
         while not gui.show_results:
@@ -516,6 +530,10 @@ def cpu_smoke_test():
             raise RuntimeError('Incomplete CPU round')
         if not gui.last_cpu_decision:
             raise RuntimeError('CPU did not act')
+        if len(gui.cpu_history) != 5:
+            raise RuntimeError('Incomplete CPU observation history')
+        if strategy_path and not gui.last_cpu_decision.method.startswith(('MCCFR average', 'Normal fallback')):
+            raise RuntimeError('Saved-policy adapter was not used')
     finally:
         if gui.executor:
             gui.executor.shutdown(wait=True, cancel_futures=True)

@@ -1,0 +1,62 @@
+{
+  "game": "kuhn-poker-v1",
+  "algorithm": "outcome-sampling MCCFR",
+  "status": "iterations_complete",
+  "iterations": 100000,
+  "additional_iterations": 100000,
+  "information_sets": 12,
+  "seconds": 2.7030000000086147,
+  "exploration": 0.6,
+  "curve": [
+    {
+      "iterations": 20000,
+      "information_sets": 12,
+      "value_player0": -0.0558122065569708,
+      "best_response_player0": -0.039815802327909856,
+      "best_response_player1": 0.06582393512913882,
+      "nash_conv": 0.02600813280122897,
+      "exploitability": 0.013004066400614484
+    },
+    {
+      "iterations": 40000,
+      "information_sets": 12,
+      "value_player0": -0.05557097914635312,
+      "best_response_player0": -0.044423837880413486,
+      "best_response_player1": 0.06248521978551184,
+      "nash_conv": 0.018061381905098352,
+      "exploitability": 0.009030690952549176
+    },
+    {
+      "iterations": 60000,
+      "information_sets": 12,
+      "value_player0": -0.055928405991123066,
+      "best_response_player0": -0.042139328030394364,
+      "best_response_player1": 0.06195639480443157,
+      "nash_conv": 0.019817066774037204,
+      "exploitability": 0.009908533387018602
+    },
+    {
+      "iterations": 80000,
+      "information_sets": 12,
+      "value_player0": -0.05541342768302445,
+      "best_response_player0": -0.05177990958750389,
+      "best_response_player1": 0.061782492718116234,
+      "nash_conv": 0.010002583130612343,
+      "exploitability": 0.005001291565306171
+    },
+    {
+      "iterations": 100000,
+      "information_sets": 12,
+      "value_player0": -0.05549148481971614,
+      "best_response_player0": -0.05383253645777186,
+      "best_response_player1": 0.06379215807167198,
+      "nash_conv": 0.009959621613900113,
+      "exploitability": 0.004979810806950057
+    }
+  ],
+  "value_player0": -0.05549148481971614,
+  "best_response_player0": -0.05383253645777186,
+  "best_response_player1": 0.06379215807167198,
+  "nash_conv": 0.009959621613900113,
+  "exploitability": 0.004979810806950057
+}
