@@ -117,7 +117,7 @@ class SessionState:
         p = self.player
         if p not in (0,1):
             raise ValueError('Not a player node')
-        return Observation(self.boards[p], self.deals[self.turn], self.visible[1-p], self.discards[p], self.tiers[p])
+        return Observation(self.boards[p], self.deals[self.turn], self.visible[1-p], self.discards[p], self.tiers[p], self.tiers[1-p])
 
     def key(self):
         p = self.player

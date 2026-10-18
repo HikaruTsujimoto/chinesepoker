@@ -15,11 +15,17 @@ from chinesepoker.ai.value_model import DEFAULT_MODEL
 
 
 def evaluate(pairs, seed, seconds, variants, initial_tiers=(0,0), max_hands=64):
+    from chinesepoker.ai.action_model import DEFAULT_MODEL as action_path, load_model as load_action
+    action_hash=None
+    if any(v in ('action','adaptive') for v in variants):
+        load_action.cache_clear()
+        action_hash=hashlib.sha256(action_path.read_bytes()).hexdigest()
     old = replace(LEVELS['normal'], seconds=seconds)
     records = []
     for variant in variants:
         new = replace(old, value_weight=.4 if variant in ('value','hybrid') else 0,
-                      diversified_fantasy=variant in ('fantasy','hybrid'))
+                      diversified_fantasy=variant in ('fantasy','hybrid','adaptive'),
+                      action_weight=.35 if variant in ('action','adaptive') else 0)
         for pair in range(pairs):
             for new_seat in (0,1):
                 # Same deck stream for swapped seats and all variants; future
@@ -68,7 +74,10 @@ def evaluate(pairs, seed, seconds, variants, initial_tiers=(0,0), max_hands=64):
                                fl_player_hands=sum(r['fl_player_hands'] for r in rows),
                                mean_new_seconds=statistics.mean(t for r in rows for t in r['new_seconds']),
                                mean_old_seconds=statistics.mean(t for r in rows for t in r['old_seconds']))
+    if action_hash is not None and action_hash!=hashlib.sha256(action_path.read_bytes()).hexdigest():
+        raise RuntimeError('Action model changed during evaluation; refusing mixed-model report')
     return dict(seed=seed,pairs=pairs,initial_tiers=initial_tiers,old_config=asdict(old),results=results,records=records,
+                action_model_sha256=action_hash,
                 model_sha256=hashlib.sha256(DEFAULT_MODEL.read_bytes()).hexdigest(),
                 scope='Held-out deck seeds; matched per-decision time caps, paired whole-session returns, no FL bonus at settlement. Small-sample approximate CI, no equilibrium certificate. Wall-clock search is not bit-reproducible.')
 
@@ -78,7 +87,7 @@ if __name__ == '__main__':
     parser.add_argument('--pairs',type=int,default=12)
     parser.add_argument('--seed',type=int,default=20300000)
     parser.add_argument('--seconds',type=float,default=1.5)
-    parser.add_argument('--variants',nargs='+',choices=['value','fantasy','hybrid'],default=['value','fantasy','hybrid'])
+    parser.add_argument('--variants',nargs='+',choices=['value','fantasy','hybrid','action','adaptive'],default=['value','fantasy','hybrid'])
     parser.add_argument('--initial-tiers',nargs=2,type=int,choices=[0,14,15,16,17],default=[0,0])
     parser.add_argument('--max-hands',type=int,default=64)
     parser.add_argument('--output',type=Path,default=Path('docs/hybrid-evaluation.json'))

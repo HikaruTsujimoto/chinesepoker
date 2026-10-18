@@ -25,8 +25,11 @@ class Observation:
     opponent: tuple = EMPTY
     discards: tuple = ()
     fantasyland_cards: int = 0
+    opponent_fantasyland_cards: int = 0
 
     def __post_init__(self):
+        if self.opponent_fantasyland_cards not in (0,14,15,16,17):
+            raise ValueError('Invalid opponent Fantasyland tier')
         for board in (self.board, self.opponent):
             if len(board) != 3 or any(len(row) > cap for row, cap in zip(board, CAPACITY)):
                 raise ValueError('Invalid board capacity')

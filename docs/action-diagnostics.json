@@ -1,0 +1,637 @@
+{
+  "hands": 10,
+  "samples": 64,
+  "decisions": 100,
+  "changed_vs_old": 8,
+  "changed_vs_prior_only": 0,
+  "by_street": {
+    "0": {
+      "decisions": 20,
+      "changed_vs_old": 5,
+      "changed_vs_prior_only": 0
+    },
+    "1": {
+      "decisions": 20,
+      "changed_vs_old": 1,
+      "changed_vs_prior_only": 0
+    },
+    "2": {
+      "decisions": 20,
+      "changed_vs_old": 1,
+      "changed_vs_prior_only": 0
+    },
+    "3": {
+      "decisions": 20,
+      "changed_vs_old": 1,
+      "changed_vs_prior_only": 0
+    },
+    "4": {
+      "decisions": 20,
+      "changed_vs_old": 0,
+      "changed_vs_prior_only": 0
+    }
+  },
+  "scope": "Matched observations and completed sample budgets; action changes do not establish greater strength.",
+  "records": [
+    {
+      "hand": 0,
+      "street": 0,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 0,
+      "street": 0,
+      "same_as_old": false,
+      "same_as_prior": true
+    },
+    {
+      "hand": 0,
+      "street": 1,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 0,
+      "street": 1,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 0,
+      "street": 2,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 0,
+      "street": 2,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 0,
+      "street": 3,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 0,
+      "street": 3,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 0,
+      "street": 4,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 0,
+      "street": 4,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 1,
+      "street": 0,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 1,
+      "street": 0,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 1,
+      "street": 1,
+      "same_as_old": false,
+      "same_as_prior": true
+    },
+    {
+      "hand": 1,
+      "street": 1,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 1,
+      "street": 2,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 1,
+      "street": 2,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 1,
+      "street": 3,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 1,
+      "street": 3,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 1,
+      "street": 4,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 1,
+      "street": 4,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 2,
+      "street": 0,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 2,
+      "street": 0,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 2,
+      "street": 1,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 2,
+      "street": 1,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 2,
+      "street": 2,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 2,
+      "street": 2,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 2,
+      "street": 3,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 2,
+      "street": 3,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 2,
+      "street": 4,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 2,
+      "street": 4,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 3,
+      "street": 0,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 3,
+      "street": 0,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 3,
+      "street": 1,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 3,
+      "street": 1,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 3,
+      "street": 2,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 3,
+      "street": 2,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 3,
+      "street": 3,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 3,
+      "street": 3,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 3,
+      "street": 4,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 3,
+      "street": 4,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 4,
+      "street": 0,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 4,
+      "street": 0,
+      "same_as_old": false,
+      "same_as_prior": true
+    },
+    {
+      "hand": 4,
+      "street": 1,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 4,
+      "street": 1,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 4,
+      "street": 2,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 4,
+      "street": 2,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 4,
+      "street": 3,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 4,
+      "street": 3,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 4,
+      "street": 4,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 4,
+      "street": 4,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 5,
+      "street": 0,
+      "same_as_old": false,
+      "same_as_prior": true
+    },
+    {
+      "hand": 5,
+      "street": 0,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 5,
+      "street": 1,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 5,
+      "street": 1,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 5,
+      "street": 2,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 5,
+      "street": 2,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 5,
+      "street": 3,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 5,
+      "street": 3,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 5,
+      "street": 4,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 5,
+      "street": 4,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 6,
+      "street": 0,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 6,
+      "street": 0,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 6,
+      "street": 1,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 6,
+      "street": 1,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 6,
+      "street": 2,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 6,
+      "street": 2,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 6,
+      "street": 3,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 6,
+      "street": 3,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 6,
+      "street": 4,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 6,
+      "street": 4,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 7,
+      "street": 0,
+      "same_as_old": false,
+      "same_as_prior": true
+    },
+    {
+      "hand": 7,
+      "street": 0,
+      "same_as_old": false,
+      "same_as_prior": true
+    },
+    {
+      "hand": 7,
+      "street": 1,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 7,
+      "street": 1,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 7,
+      "street": 2,
+      "same_as_old": false,
+      "same_as_prior": true
+    },
+    {
+      "hand": 7,
+      "street": 2,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 7,
+      "street": 3,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 7,
+      "street": 3,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 7,
+      "street": 4,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 7,
+      "street": 4,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 8,
+      "street": 0,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 8,
+      "street": 0,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 8,
+      "street": 1,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 8,
+      "street": 1,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 8,
+      "street": 2,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 8,
+      "street": 2,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 8,
+      "street": 3,
+      "same_as_old": false,
+      "same_as_prior": true
+    },
+    {
+      "hand": 8,
+      "street": 3,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 8,
+      "street": 4,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 8,
+      "street": 4,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 9,
+      "street": 0,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 9,
+      "street": 0,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 9,
+      "street": 1,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 9,
+      "street": 1,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 9,
+      "street": 2,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 9,
+      "street": 2,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 9,
+      "street": 3,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 9,
+      "street": 3,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 9,
+      "street": 4,
+      "same_as_old": true,
+      "same_as_prior": true
+    },
+    {
+      "hand": 9,
+      "street": 4,
+      "same_as_old": true,
+      "same_as_prior": true
+    }
+  ]
+}

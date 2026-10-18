@@ -1,7 +1,7 @@
 # Chinese Poker — Pineapple OFC
 
 Python / Pygame で遊ぶ、2人用の Pineapple Open Face Chinese Poker です。
-GUI は CPU 対戦（Easy / Normal / Hard / Hybrid）と、同じ PC を交代で操作する2人対戦に対応しています。
+GUI は CPU 対戦（Easy / Normal / Hard / Hybrid / Adaptive）と、同じ PC を交代で操作する2人対戦に対応しています。
 
 ## Windows で遊ぶ
 
@@ -32,6 +32,11 @@ Two players を選ぶと従来の2人対戦です。ターミナル版は対人�
 **CPU - Hybrid (test)** は、局面の特徴からFL終了までの得点を予測する学習モデルと、
 複数の役構成に探索時間を分配するFL探索を使います。モデルはexeに同梱され、追加設定は不要です。
 従来のNormalとの比較方法・測定結果・限界は [Hybrid CPU](docs/HYBRID.md) を参照してください。
+
+**CPU - Adaptive (test)** は、候補間の価値差を学習し、最終着手の選択にも反映する実験用CPUです。
+今回の学習では非線形補正が検証で旧評価を上回らず、配布モデルは尺度調整した旧評価を使用しています。
+通常手の評価には、両者のFL枚数に応じた連続対局の継続価値も使用します。
+自己対戦の更新方法、独立したDeep CFRの小規模検証、実戦評価は [Adaptive CPU](docs/ADAPTIVE.md) を参照してください。
 
 CPU はナッシュ均衡を解いたものではありません。探索の範囲、検証結果の読み方、
 既知の限界と今後の均衡計算への方針は [CPU の設計と検証](docs/CPU.md) を参照してください。

@@ -206,7 +206,8 @@ class GameGUI:
         return Observation(
             board_of(self.p2), tuple(encode(c) for c in self.cards_in_hand),
             board_of(self.p1, self.hidden_cards[self.p1.name]), tuple(self.discards),
-            self.p2.fantasyland_cards if self.p2.fantasyland else 0)
+            self.p2.fantasyland_cards if self.p2.fantasyland else 0,
+            self.p1.fantasyland_cards if self.p1.fantasyland else 0)
 
     def start_cpu(self):
         self.cpu_error = None
@@ -424,10 +425,11 @@ class GameGUI:
 
 def menu_buttons(strategy_path=None):
     choices = [('CPU - Easy', 'easy'), ('CPU - Normal', 'normal'),
-               ('CPU - Hard', 'hard'), ('CPU - Hybrid (test)', 'hybrid'), ('Two players', None)]
+               ('CPU - Hard', 'hard'), ('CPU - Hybrid (test)', 'hybrid'),
+               ('CPU - Adaptive (test)', 'adaptive'), ('Two players', None)]
     if strategy_path:
         choices.append(('CPU - Learned (test)', 'learned'))
-    return [(Button(WIDTH // 2 - 150, 300 + i * 80, 300, 60, label,
+    return [(Button(WIDTH // 2 - 165, 300 + i * 75, 330, 60, label,
                        (0, 110, 160), (0, 145, 200)), level) for i, (label, level) in enumerate(choices)]
 
 
@@ -516,6 +518,7 @@ def cpu_smoke_test(strategy_path=None, difficulty='easy'):
     gui = GameGUI('learned' if strategy_path else difficulty, strategy_path=strategy_path)
     deadline = time.monotonic() + 60
     hybrid_used = False
+    adaptive_used = False
     try:
         while not gui.show_results:
             if time.monotonic() > deadline:
@@ -526,6 +529,8 @@ def cpu_smoke_test(strategy_path=None, difficulty='easy'):
                 gui.update_cpu()
                 if gui.last_cpu_decision and 'generalized session-value' in gui.last_cpu_decision.method:
                     hybrid_used = True
+                if gui.last_cpu_decision and 'learned action advantages' in gui.last_cpu_decision.method:
+                    adaptive_used = True
             else:
                 observation = Observation(board_of(gui.p1), tuple(encode(c) for c in gui.cards_in_hand))
                 decision = choose_move(observation, 'easy', seed=0)
@@ -546,6 +551,8 @@ def cpu_smoke_test(strategy_path=None, difficulty='easy'):
             raise RuntimeError('Saved-policy adapter was not used')
         if difficulty == 'hybrid' and not strategy_path and not hybrid_used:
             raise RuntimeError('Bundled generalized value model was not used')
+        if difficulty == 'adaptive' and not strategy_path and not adaptive_used:
+            raise RuntimeError('Bundled nonlinear action model was not used')
     finally:
         if gui.executor:
             gui.executor.shutdown(wait=True, cancel_futures=True)
