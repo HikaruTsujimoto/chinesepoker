@@ -85,7 +85,9 @@ python -m tools.evaluate_mccfr --game session --fantasy-candidates 16 --checkpoi
 学習コマンドの既定ゲームは `session` に変更しました。旧モデルは `--game ofc` で利用できます。
 `session` と旧通常1ハンドのチェックポイントは互換ではありません。
 現時点のGUIの `--strategy` は旧 `ofc` モデル専用です。今回のsessionモデルは学習・評価用であり、
-GUIへはまだ接続していません。全ハンドの観測履歴を受け渡す実戦用アダプターが必要です。
+このMCCFRチェックポイントはGUIへはまだ接続していません。全ハンドの観測履歴を受け渡す実戦用アダプターが必要です。
+別途、連続対局の実得点を教師値にした一般化価値モデルを [Hybrid CPU](HYBRID.md) に接続しています。
+Hybridはここで保存したMCCFR戦略を読み込む方式ではありません。
 
 ## 実測（2026-10-18）
 

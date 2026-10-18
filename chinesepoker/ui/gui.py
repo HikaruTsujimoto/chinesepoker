@@ -424,7 +424,7 @@ class GameGUI:
 
 def menu_buttons(strategy_path=None):
     choices = [('CPU - Easy', 'easy'), ('CPU - Normal', 'normal'),
-               ('CPU - Hard', 'hard'), ('Two players', None)]
+               ('CPU - Hard', 'hard'), ('CPU - Hybrid (test)', 'hybrid'), ('Two players', None)]
     if strategy_path:
         choices.append(('CPU - Learned (test)', 'learned'))
     return [(Button(WIDTH // 2 - 150, 300 + i * 80, 300, 60, label,
@@ -509,12 +509,13 @@ def smoke_test():
     pygame.quit()
 
 
-def cpu_smoke_test(strategy_path=None):
+def cpu_smoke_test(strategy_path=None, difficulty='easy'):
     """Exercise the real spawned worker, turn transitions and bundled images."""
     if len(card_images) != 53:
         raise RuntimeError('Missing bundled images')
-    gui = GameGUI('learned' if strategy_path else 'easy', strategy_path=strategy_path)
+    gui = GameGUI('learned' if strategy_path else difficulty, strategy_path=strategy_path)
     deadline = time.monotonic() + 60
+    hybrid_used = False
     try:
         while not gui.show_results:
             if time.monotonic() > deadline:
@@ -523,6 +524,8 @@ def cpu_smoke_test(strategy_path=None):
                 raise RuntimeError(gui.cpu_error)
             if gui.is_cpu_turn():
                 gui.update_cpu()
+                if gui.last_cpu_decision and 'generalized session-value' in gui.last_cpu_decision.method:
+                    hybrid_used = True
             else:
                 observation = Observation(board_of(gui.p1), tuple(encode(c) for c in gui.cards_in_hand))
                 decision = choose_move(observation, 'easy', seed=0)
@@ -541,6 +544,8 @@ def cpu_smoke_test(strategy_path=None):
             raise RuntimeError('Incomplete CPU observation history')
         if strategy_path and not gui.last_cpu_decision.method.startswith(('MCCFR average', 'Normal fallback')):
             raise RuntimeError('Saved-policy adapter was not used')
+        if difficulty == 'hybrid' and not strategy_path and not hybrid_used:
+            raise RuntimeError('Bundled generalized value model was not used')
     finally:
         if gui.executor:
             gui.executor.shutdown(wait=True, cancel_futures=True)

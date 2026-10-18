@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from itertools import combinations, product
 import random
 import time
+import math
 from .model import CAPACITY, EMPTY, Move, Decision, after_move, validate_move
 from .evaluation import heuristic, terminal_value, complete, rank, compare_hands, summary
 
@@ -14,12 +15,15 @@ class SearchConfig:
     shortlist: int = 16
     fantasy_bottoms: int = 384
     opponent_aware_final: bool = True
+    value_weight: float = 0.0
+    diversified_fantasy: bool = False
 
 
 LEVELS = {
     'easy': SearchConfig(0.25, 0, 1, 48),
     'normal': SearchConfig(1.5, 64, 16, 384),
     'hard': SearchConfig(5.0, 256, 32, 2048),
+    'hybrid': SearchConfig(1.5, 64, 16, 384, True, 0.4, True),
 }
 
 
@@ -61,15 +65,31 @@ def opponent_completion(board, draws):
 
 def choose_move(observation, difficulty='normal', seed=None, config=None):
     config = config or LEVELS[difficulty]
-    if config.seconds < 0 or config.samples < 0 or config.shortlist < 1 or config.fantasy_bottoms < 1:
+    if (not math.isfinite(config.seconds) or config.seconds < 0 or config.samples < 0
+            or config.shortlist < 1 or config.fantasy_bottoms < 1
+            or not math.isfinite(config.value_weight) or config.value_weight < 0):
         raise ValueError('Invalid search configuration')
     start = time.monotonic()
     deadline = start + config.seconds
     rng = random.Random(seed)
     if observation.fantasyland_cards:
+        if config.diversified_fantasy:
+            from .fantasy_search import search
+            return search(observation, config, rng, start, deadline)
         return fantasy_move(observation, config, rng, start, deadline)
     moves = list(normal_moves(observation.board, observation.hand, observation.place_count))
-    ranked = sorted(moves, key=lambda m: heuristic(after_move(observation.board, m)), reverse=True)
+    model = None
+    if config.value_weight:
+        from .value_model import load_model
+        model = load_model()
+    def priority(move):
+        board = after_move(observation.board, move)
+        base = heuristic(board)
+        # Keep irreparable foul protection and final-street exact evaluation.
+        if model is None or base < -90 or complete(board):
+            return base
+        return base + config.value_weight*max(-20, min(20, model.predict(board, observation.opponent)))
+    ranked = sorted(moves, key=priority, reverse=True)
     best = ranked[0]
     # Final-street placements are all evaluated, without pruning.
     if complete(after_move(observation.board, best)):
@@ -106,8 +126,10 @@ def choose_move(observation, difficulty='normal', seed=None, config=None):
     else:
         value = heuristic(after_move(observation.board, best))
     validate_move(observation, best)
-    return Decision(best, len(moves), simulations, time.monotonic() - start, value,
-                    f'rollouts ({batches} complete batches)' if batches else 'heuristic fallback')
+    method = f'rollouts ({batches} complete batches)' if batches else 'heuristic fallback'
+    if model is not None:
+        method += ' + generalized session-value shortlist'
+    return Decision(best, len(moves), simulations, time.monotonic() - start, value, method)
 
 
 def final_street(obs, moves, config, rng, start, deadline):
