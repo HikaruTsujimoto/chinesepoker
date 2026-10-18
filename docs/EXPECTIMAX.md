@@ -1,7 +1,7 @@
 # 配牌ごとの最善配置を読む期待値探索
 
-GUIで **CPU - Expectimax (test)** を選択します。既定の思考上限は1手5秒です。
-既存のNormal、Adaptiveも引き続き選べます。カード画像とFL継続価値モデルはexeに同梱します。
+GUIで **Play vs CPU** を選択します。既定の思考上限は1手5秒です。
+既存のNormal、Adaptiveなどは **Other CPUs** の別画面から選べます。カード画像とFL継続価値モデルはexeに同梱します。
 
 ## 何を最適化するか
 
