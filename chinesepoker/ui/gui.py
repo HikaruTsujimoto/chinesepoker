@@ -114,7 +114,9 @@ class GameGUI:
         
         self.selected_card = None
         self.hand_sort_descending = None
-        self.btn_sort = Button(50, 432, 250, 38, 'Sort: 2 -> A', (0, 110, 160), (0, 145, 200))
+        self.hand_sort_mode = None
+        self.btn_sort = Button(50, 432, 190, 38, 'Rank: 2 -> A', (0, 110, 160), (0, 145, 200))
+        self.btn_sort_suit = Button(250, 432, 190, 38, 'Suit: S H D C', (0, 110, 160), (0, 145, 200))
         self.waiting_for_turn_start = False
         self.btn_confirm = Button(WIDTH // 2 - 75, HEIGHT - 80, 150, 50, "Confirm", (0, 120, 200), (0, 150, 250))
         self.btn_next = Button(WIDTH // 2 - 100, HEIGHT - 100, 200, 50, "Next Round", (0, 150, 50), (0, 180, 80))
@@ -167,7 +169,8 @@ class GameGUI:
         self.placed_this_turn = []
         self.selected_card = None
         self.hand_sort_descending = None
-        self.btn_sort.text = 'Sort: 2 -> A'
+        self.hand_sort_mode = None
+        self.btn_sort.text = 'Rank: 2 -> A'
         
         if self.current_action['type'] == 'turn':
             action_round = self.current_action.get('round', 1)
@@ -280,10 +283,18 @@ class GameGUI:
         player = self.current_action['player']
         place_req = self.current_action['place']
         self.btn_sort.rect.x = 50 if player is self.p1 else 700
+        self.btn_sort_suit.rect.x = self.btn_sort.rect.x + 200
         if player.fantasyland and self.btn_sort.rect.collidepoint(pos):
-            self.hand_sort_descending = not self.hand_sort_descending if self.hand_sort_descending is not None else False
+            self.hand_sort_descending = not self.hand_sort_descending if self.hand_sort_mode == 'rank' else False
+            self.hand_sort_mode = 'rank'
             self.sort_hand()
-            self.btn_sort.text = 'Sort: 2 -> A' if self.hand_sort_descending else 'Sort: A -> 2'
+            self.btn_sort.text = 'Rank: 2 -> A' if self.hand_sort_descending else 'Rank: A -> 2'
+            return
+        if player.fantasyland and self.btn_sort_suit.rect.collidepoint(pos):
+            self.hand_sort_mode = 'suit'
+            self.hand_sort_descending = None
+            self.btn_sort.text = 'Rank: 2 -> A'
+            self.sort_hand()
             return
         
         # Check clicking cards in hand
@@ -335,7 +346,9 @@ class GameGUI:
                     return
 
     def sort_hand(self):
-        if self.hand_sort_descending is not None:
+        if self.hand_sort_mode == 'suit':
+            self.cards_in_hand.sort(key=lambda c: (c.SUITS.index(c.suit), c.value))
+        elif self.hand_sort_mode == 'rank':
             self.cards_in_hand.sort(key=lambda c: (
                 -c.value if self.hand_sort_descending else c.value, c.SUITS.index(c.suit)))
 
@@ -428,7 +441,9 @@ class GameGUI:
             hand_start_y = 480
             if player.fantasyland:
                 self.btn_sort.rect.x = hand_start_x
+                self.btn_sort_suit.rect.x = hand_start_x + 200
                 self.btn_sort.draw(surface)
+                self.btn_sort_suit.draw(surface)
             for i, card in enumerate(self.cards_in_hand):
                 row_offset = i // 5
                 col_offset = i % 5
