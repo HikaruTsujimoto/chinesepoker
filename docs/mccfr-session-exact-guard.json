@@ -1,0 +1,24 @@
+{
+  "game": "ofc-until-both-fl-end-v1:[0,[14,17]]",
+  "algorithm": "outcome-sampling MCCFR",
+  "status": "ActionLimit",
+  "iterations": 0,
+  "additional_iterations": 0,
+  "information_sets": 0,
+  "seconds": 0.0,
+  "exploration": 0.6,
+  "curve": [],
+  "stop_reason": "1009008 legal actions exceed table limit 10000; no pruning applied",
+  "exploitability": null,
+  "equilibrium_certified": false,
+  "fantasy_candidates": 0,
+  "initial_tiers": [
+    14,
+    17
+  ],
+  "completed_episodes": 0,
+  "total_completed_hands": 0,
+  "longest_completed_session": 0,
+  "multi_hand_sessions": 0,
+  "scope": "Undiscounted scores until BOTH next-FL rights vanish. No artificial terminal or cash-out at resource limits. FL action abstraction only if fantasy_candidates > 0. No full-game equilibrium certificate."
+}

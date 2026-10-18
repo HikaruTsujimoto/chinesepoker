@@ -1,8 +1,16 @@
 import pygame
 import os
 import sys
+import time
+import multiprocessing
+from concurrent.futures import ProcessPoolExecutor
+from chinesepoker.ai.model import Observation, board_of, encode, apply_move
+from chinesepoker.ai.search import choose_move
+from chinesepoker.ai.learned import choose_learned
+from chinesepoker.ai.training_games import observation_data, move_data
 from chinesepoker.core.player import Player
 from chinesepoker.core.game import Game
+from chinesepoker.core.session_rules import can_settle
 
 # --- Constants & Colors ---
 WIDTH, HEIGHT = 1280, 900
@@ -82,9 +90,18 @@ class Button:
         return False
 
 class GameGUI:
-    def __init__(self):
+    def __init__(self, difficulty='normal', executor=None, strategy_path=None):
+        self.difficulty = difficulty
+        self.strategy_path = strategy_path
+        self.cpu_history = ()
+        self.executor = executor
+        self.cpu_future = None
+        self.cpu_error = None
+        self.cpu_started = 0
+        self.last_cpu_decision = None
+        self.discards = []
         self.p1 = Player("Player 1")
-        self.p2 = Player("Player 2")
+        self.p2 = Player("CPU" if difficulty else "Player 2")
         self.game = Game([self.p1, self.p2])
         self.game_round = 1
         
@@ -107,6 +124,10 @@ class GameGUI:
         self.next_action()
 
     def build_round_actions(self):
+        self.cpu_history = ()
+        self.discards = []
+        self.hidden_cards = {self.p1.name: [], self.p2.name: []}
+        self.current_round_num = 1
         # Reset players for new round
         self.game.deck = Game(self.game.players).deck # New deck
         for p in self.game.players:
@@ -162,7 +183,9 @@ class GameGUI:
             player = self.current_action['player']
             deal_count = self.current_action['deal']
             self.cards_in_hand = self.game.deal_cards(player, deal_count)
-            self.waiting_for_turn_start = True
+            self.waiting_for_turn_start = not self.is_cpu_turn()
+            if self.is_cpu_turn():
+                self.start_cpu()
         elif self.current_action['type'] == 'eval':
             # Final sort before showing results
             from collections import Counter
@@ -173,6 +196,60 @@ class GameGUI:
                     
             self.show_results = True
             self.results_text = self.game.resolve_scores()
+
+    def is_cpu_turn(self):
+        return bool(self.difficulty and self.current_action and
+                    self.current_action.get('type') == 'turn' and
+                    self.current_action['player'] is self.p2)
+
+    def cpu_observation(self):
+        return Observation(
+            board_of(self.p2), tuple(encode(c) for c in self.cards_in_hand),
+            board_of(self.p1, self.hidden_cards[self.p1.name]), tuple(self.discards),
+            self.p2.fantasyland_cards if self.p2.fantasyland else 0,
+            self.p1.fantasyland_cards if self.p1.fantasyland else 0)
+
+    def start_cpu(self):
+        self.cpu_error = None
+        self.cpu_started = time.monotonic()
+        try:
+            if self.executor is None:
+                self.executor = ProcessPoolExecutor(max_workers=1, mp_context=multiprocessing.get_context('spawn'))
+            if self.difficulty == 'learned':
+                self.cpu_future = self.executor.submit(choose_learned, self.cpu_observation(),
+                    self.strategy_path, self.cpu_history, 1,
+                    not (self.p1.fantasyland or self.p2.fantasyland))
+            else:
+                self.cpu_future = self.executor.submit(choose_move, self.cpu_observation(), self.difficulty)
+        except Exception as error:
+            self.cpu_error = str(error)
+
+    def update_cpu(self):
+        if not self.cpu_future or not self.cpu_future.done():
+            return
+        future, self.cpu_future = self.cpu_future, None
+        try:
+            decision = future.result()
+            observation = self.cpu_observation()
+            hand = {encode(c): c for c in self.cards_in_hand}
+            apply_move(self.p2, self.cards_in_hand, decision.move)
+            self.cpu_history += ((observation_data(observation), move_data(decision.move)),)
+            self.hidden_cards[self.p2.name].extend(hand[c] for c, _ in decision.move.placements)
+            self.discards.extend(decision.move.discards)
+            self.last_cpu_decision = decision
+        except Exception as error:
+            self.cpu_error = str(error)
+            return
+        self.next_action()
+
+    def close(self):
+        if self.executor is not None:
+            self.executor.shutdown(wait=False, cancel_futures=True)
+            self.executor = None
+
+    def can_return_to_menu(self):
+        rights = [p.next_fantasyland if self.show_results else p.fantasyland for p in (self.p1,self.p2)]
+        return can_settle(rights)
 
     def get_row_rects(self, player_idx):
         # Returns dict of rects for top, mid, bot for a player
@@ -190,7 +267,7 @@ class GameGUI:
         return rects
 
     def handle_click(self, pos):
-        if self.show_results or self.waiting_for_turn_start:
+        if self.show_results or self.waiting_for_turn_start or self.is_cpu_turn():
             return
 
         if self.current_action['type'] != 'turn':
@@ -271,7 +348,7 @@ class GameGUI:
                         # Hide cards placed in current round if it's not this player's turn
                         is_active_player = (self.current_action and self.current_action.get('type') == 'turn' and self.current_action['player'] == p)
                         
-                        if not is_active_player and c in self.hidden_cards[p.name]:
+                        if not self.show_results and not is_active_player and c in self.hidden_cards[p.name]:
                             # Transparent (do not draw the card or its back) to completely hide placement position
                             pass
                         else:
@@ -298,6 +375,14 @@ class GameGUI:
                 y += 35
                     
             self.btn_next.draw(surface)
+            return
+
+        if self.is_cpu_turn():
+            elapsed = time.monotonic() - self.cpu_started
+            message = ("CPU error: press R to retry or Esc for menu" if self.cpu_error else
+                       f"CPU thinking... {elapsed:.1f}s | {self.difficulty.title()}")
+            draw_text(surface, message, font, GOLD, WIDTH // 2, 500, align="center")
+            draw_text(surface, "Your opponent's hand stays hidden", font, WHITE, WIDTH // 2, 550, align="center")
             return
 
         # Draw current turn info
@@ -338,17 +423,52 @@ class GameGUI:
             if len(self.placed_this_turn) == req:
                 self.btn_confirm.draw(surface)
 
-def main():
-    gui = GameGUI()
+def menu_buttons(strategy_path=None):
+    choices = [('CPU - Easy', 'easy'), ('CPU - Normal', 'normal'),
+               ('CPU - Hard', 'hard'), ('CPU - Hybrid (test)', 'hybrid'),
+               ('CPU - Adaptive (test)', 'adaptive'),
+               ('CPU - Expectimax (test)', 'expectimax'), ('Two players', None)]
+    if strategy_path:
+        choices.append(('CPU - Learned (test)', 'learned'))
+    return [(Button(WIDTH // 2 - 165, 300 + i * 75, 330, 60, label,
+                       (0, 110, 160), (0, 145, 200)), level) for i, (label, level) in enumerate(choices)]
+
+
+def draw_menu(surface, buttons):
+    surface.fill(BG_COLOR)
+    draw_text(surface, "Pineapple OFC", large_font, GOLD, WIDTH // 2, 180, align="center")
+    draw_text(surface, "Choose your opponent", font, WHITE, WIDTH // 2, 240, align="center")
+    for button, _ in buttons:
+        button.draw(surface)
+
+
+def main(strategy_path=None):
+    gui = None
+    buttons = menu_buttons(strategy_path)
     running = True
-    
-    while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-                
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                if gui.show_results:
+    try:
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE and gui:
+                    if gui.can_return_to_menu():
+                        gui.close()
+                        gui = None
+                    continue
+                if gui and event.type == pygame.KEYDOWN and event.key == pygame.K_r and gui.cpu_error:
+                    gui.close()
+                    gui.start_cpu()
+                if event.type != pygame.MOUSEBUTTONDOWN or event.button != 1:
+                    continue
+                if gui is None:
+                    for button, level in buttons:
+                        if button.is_clicked(event):
+                            gui = GameGUI(level, strategy_path=strategy_path)
+                            break
+                elif gui.is_cpu_turn():
+                    continue
+                elif gui.show_results:
                     if gui.btn_next.is_clicked(event):
                         gui.show_results = False
                         gui.game_round += 1
@@ -361,20 +481,26 @@ def main():
                         req = gui.current_action['place']
                         if len(gui.placed_this_turn) == req and gui.btn_confirm.is_clicked(event):
                             player = gui.current_action['player']
-                            # Register placed cards as hidden for the opponent
-                            for c in gui.placed_this_turn:
-                                gui.hidden_cards[player.name].append(c)
-                            
+                            gui.hidden_cards[player.name].extend(gui.placed_this_turn)
                             gui.next_action()
                         else:
                             gui.handle_click(event.pos)
-                        
-        gui.draw(screen)
-        pygame.display.flip()
-        clock.tick(FPS)
-        
-    pygame.quit()
-    sys.exit()
+            if not running:
+                break
+            if gui:
+                gui.update_cpu()
+                gui.draw(screen)
+                help_text = 'Esc: menu' if gui.can_return_to_menu() else 'FL active: continue until both players leave Fantasyland'
+                draw_text(screen, help_text, font, WHITE, 15, HEIGHT - 40)
+            else:
+                draw_menu(screen, buttons)
+            pygame.display.flip()
+            clock.tick(FPS)
+    finally:
+        if gui:
+            gui.close()
+        pygame.quit()
+
 
 def smoke_test():
     """Verify bundled assets and initial drawing without a game loop."""
@@ -384,6 +510,57 @@ def smoke_test():
     gui.waiting_for_turn_start = False
     gui.draw(screen)
     pygame.quit()
+
+
+def cpu_smoke_test(strategy_path=None, difficulty='easy'):
+    """Exercise the real spawned worker, turn transitions and bundled images."""
+    if len(card_images) != 53:
+        raise RuntimeError('Missing bundled images')
+    gui = GameGUI('learned' if strategy_path else difficulty, strategy_path=strategy_path)
+    deadline = time.monotonic() + 60
+    hybrid_used = False
+    adaptive_used = False
+    try:
+        while not gui.show_results:
+            if time.monotonic() > deadline:
+                raise RuntimeError('CPU smoke test timed out')
+            if gui.cpu_error:
+                raise RuntimeError(gui.cpu_error)
+            if gui.is_cpu_turn():
+                gui.update_cpu()
+                if gui.last_cpu_decision and 'generalized session-value' in gui.last_cpu_decision.method:
+                    hybrid_used = True
+                if gui.last_cpu_decision and 'learned action advantages' in gui.last_cpu_decision.method:
+                    adaptive_used = True
+            else:
+                observation = Observation(board_of(gui.p1), tuple(encode(c) for c in gui.cards_in_hand))
+                decision = choose_move(observation, 'easy', seed=0)
+                cards = {encode(c): c for c in gui.cards_in_hand}
+                apply_move(gui.p1, gui.cards_in_hand, decision.move)
+                gui.hidden_cards[gui.p1.name].extend(cards[c] for c, _ in decision.move.placements)
+                gui.next_action()
+            gui.draw(screen)
+            pygame.event.pump()
+            time.sleep(0.005)
+        if gui.p1.count_cards() != 13 or gui.p2.count_cards() != 13:
+            raise RuntimeError('Incomplete CPU round')
+        if not gui.last_cpu_decision:
+            raise RuntimeError('CPU did not act')
+        if len(gui.cpu_history) != 5:
+            raise RuntimeError('Incomplete CPU observation history')
+        if strategy_path and not gui.last_cpu_decision.method.startswith(('MCCFR average', 'Normal fallback')):
+            raise RuntimeError('Saved-policy adapter was not used')
+        if difficulty == 'hybrid' and not strategy_path and not hybrid_used:
+            raise RuntimeError('Bundled generalized value model was not used')
+        if difficulty == 'adaptive' and not strategy_path and not adaptive_used:
+            raise RuntimeError('Bundled nonlinear action model was not used')
+        if difficulty == 'expectimax' and not strategy_path and not gui.last_cpu_decision.method.startswith('expectimax'):
+            raise RuntimeError('Expectimax planner was not used')
+    finally:
+        if gui.executor:
+            gui.executor.shutdown(wait=True, cancel_futures=True)
+            gui.executor = None
+        pygame.quit()
 
 
 if __name__ == "__main__":

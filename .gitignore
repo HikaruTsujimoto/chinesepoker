@@ -3,3 +3,4 @@ __pycache__/
 build/
 dist/
 build_log.txt
+training-data/

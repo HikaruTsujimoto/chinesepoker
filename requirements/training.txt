@@ -1,0 +1,2 @@
+# Training only; NumPy is not bundled in the game executable.
+numpy>=2.2,<3

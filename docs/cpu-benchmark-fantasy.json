@@ -1,0 +1,149 @@
+{
+  "difficulty": "normal",
+  "records": [
+    {
+      "seed": 20262419,
+      "tier": 14,
+      "foul": false,
+      "royalty": 8,
+      "next_tier": 0,
+      "seconds": 1.5,
+      "evaluated": 47095
+    },
+    {
+      "seed": 20262420,
+      "tier": 14,
+      "foul": false,
+      "royalty": 6,
+      "next_tier": 0,
+      "seconds": 1.5,
+      "evaluated": 46300
+    },
+    {
+      "seed": 20262421,
+      "tier": 14,
+      "foul": false,
+      "royalty": 12,
+      "next_tier": 0,
+      "seconds": 1.5,
+      "evaluated": 46800
+    },
+    {
+      "seed": 20262422,
+      "tier": 14,
+      "foul": false,
+      "royalty": 6,
+      "next_tier": 0,
+      "seconds": 1.5,
+      "evaluated": 46393
+    },
+    {
+      "seed": 20262519,
+      "tier": 15,
+      "foul": false,
+      "royalty": 6,
+      "next_tier": 0,
+      "seconds": 1.5,
+      "evaluated": 47597
+    },
+    {
+      "seed": 20262520,
+      "tier": 15,
+      "foul": false,
+      "royalty": 12,
+      "next_tier": 0,
+      "seconds": 1.5,
+      "evaluated": 47103
+    },
+    {
+      "seed": 20262521,
+      "tier": 15,
+      "foul": false,
+      "royalty": 14,
+      "next_tier": 0,
+      "seconds": 1.5,
+      "evaluated": 46753
+    },
+    {
+      "seed": 20262522,
+      "tier": 15,
+      "foul": false,
+      "royalty": 14,
+      "next_tier": 0,
+      "seconds": 1.5,
+      "evaluated": 47398
+    },
+    {
+      "seed": 20262619,
+      "tier": 16,
+      "foul": false,
+      "royalty": 19,
+      "next_tier": 0,
+      "seconds": 1.5,
+      "evaluated": 48028
+    },
+    {
+      "seed": 20262620,
+      "tier": 16,
+      "foul": false,
+      "royalty": 17,
+      "next_tier": 0,
+      "seconds": 1.5,
+      "evaluated": 47980
+    },
+    {
+      "seed": 20262621,
+      "tier": 16,
+      "foul": false,
+      "royalty": 14,
+      "next_tier": 0,
+      "seconds": 1.5,
+      "evaluated": 48631
+    },
+    {
+      "seed": 20262622,
+      "tier": 16,
+      "foul": false,
+      "royalty": 8,
+      "next_tier": 0,
+      "seconds": 1.5,
+      "evaluated": 48274
+    },
+    {
+      "seed": 20262719,
+      "tier": 17,
+      "foul": false,
+      "royalty": 18,
+      "next_tier": 17,
+      "seconds": 1.5,
+      "evaluated": 48479
+    },
+    {
+      "seed": 20262720,
+      "tier": 17,
+      "foul": false,
+      "royalty": 36,
+      "next_tier": 17,
+      "seconds": 1.5,
+      "evaluated": 48035
+    },
+    {
+      "seed": 20262721,
+      "tier": 17,
+      "foul": false,
+      "royalty": 14,
+      "next_tier": 0,
+      "seconds": 1.5,
+      "evaluated": 49004
+    },
+    {
+      "seed": 20262722,
+      "tier": 17,
+      "foul": false,
+      "royalty": 15,
+      "next_tier": 0,
+      "seconds": 1.5,
+      "evaluated": 47159
+    }
+  ]
+}
