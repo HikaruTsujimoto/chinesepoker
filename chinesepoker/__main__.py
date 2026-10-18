@@ -7,7 +7,7 @@ def main():
     freeze_support()
     parser = argparse.ArgumentParser(description='Pineapple Open Face Chinese Poker')
     parser.add_argument('--strategy', help='Experimental normal single-hand MCCFR checkpoint (JSON)')
-    parser.add_argument('--cpu-level', choices=['easy','normal','hard','hybrid','adaptive'], default='easy', help=argparse.SUPPRESS)
+    parser.add_argument('--cpu-level', choices=['easy','normal','hard','hybrid','adaptive','expectimax'], default='easy', help=argparse.SUPPRESS)
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument('--terminal', action='store_true', help='Play in the terminal')
     mode.add_argument('--smoke-test', action='store_true', help=argparse.SUPPRESS)

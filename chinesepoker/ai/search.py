@@ -18,6 +18,7 @@ class SearchConfig:
     value_weight: float = 0.0
     diversified_fantasy: bool = False
     action_weight: float = 0.0
+    expectimax: bool = False
 
 
 LEVELS = {
@@ -26,6 +27,7 @@ LEVELS = {
     'hard': SearchConfig(5.0, 256, 32, 2048),
     'hybrid': SearchConfig(1.5, 64, 16, 384, True, 0.4, True),
     'adaptive': SearchConfig(1.5, 64, 16, 384, True, 0.0, True, 0.35),
+    'expectimax': SearchConfig(seconds=5.0, shortlist=12, expectimax=True),
 }
 
 
@@ -73,6 +75,10 @@ def choose_move(observation, difficulty='normal', seed=None, config=None):
         raise ValueError('Invalid search configuration')
     if not math.isfinite(config.action_weight) or not 0 <= config.action_weight <= 1:
         raise ValueError('Invalid action-model mixing weight')
+    if config.expectimax:
+        from .expectimax import choose_move as plan_move
+        return plan_move(observation, seed=seed, seconds=config.seconds,
+                         samples=config.samples, shortlist=config.shortlist)
     start = time.monotonic()
     deadline = start + config.seconds
     rng = random.Random(seed)

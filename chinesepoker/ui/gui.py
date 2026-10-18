@@ -426,7 +426,8 @@ class GameGUI:
 def menu_buttons(strategy_path=None):
     choices = [('CPU - Easy', 'easy'), ('CPU - Normal', 'normal'),
                ('CPU - Hard', 'hard'), ('CPU - Hybrid (test)', 'hybrid'),
-               ('CPU - Adaptive (test)', 'adaptive'), ('Two players', None)]
+               ('CPU - Adaptive (test)', 'adaptive'),
+               ('CPU - Expectimax (test)', 'expectimax'), ('Two players', None)]
     if strategy_path:
         choices.append(('CPU - Learned (test)', 'learned'))
     return [(Button(WIDTH // 2 - 165, 300 + i * 75, 330, 60, label,
@@ -553,6 +554,8 @@ def cpu_smoke_test(strategy_path=None, difficulty='easy'):
             raise RuntimeError('Bundled generalized value model was not used')
         if difficulty == 'adaptive' and not strategy_path and not adaptive_used:
             raise RuntimeError('Bundled nonlinear action model was not used')
+        if difficulty == 'expectimax' and not strategy_path and not gui.last_cpu_decision.method.startswith('expectimax'):
+            raise RuntimeError('Expectimax planner was not used')
     finally:
         if gui.executor:
             gui.executor.shutdown(wait=True, cancel_futures=True)

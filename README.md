@@ -1,7 +1,7 @@
 # Chinese Poker — Pineapple OFC
 
 Python / Pygame で遊ぶ、2人用の Pineapple Open Face Chinese Poker です。
-GUI は CPU 対戦（Easy / Normal / Hard / Hybrid / Adaptive）と、同じ PC を交代で操作する2人対戦に対応しています。
+GUI は CPU 対戦（Easy / Normal / Hard / Hybrid / Adaptive / Expectimax）と、同じ PC を交代で操作する2人対戦に対応しています。
 
 ## Windows で遊ぶ
 
@@ -37,6 +37,11 @@ Two players を選ぶと従来の2人対戦です。ターミナル版は対人�
 今回の学習では非線形補正が検証で旧評価を上回らず、配布モデルは尺度調整した旧評価を使用しています。
 通常手の評価には、両者のFL枚数に応じた連続対局の継続価値も使用します。
 自己対戦の更新方法、独立したDeep CFRの小規模検証、実戦評価は [Adaptive CPU](docs/ADAPTIVE.md) を参照してください。
+
+**CPU - Expectimax (test)** は、次の配牌ごとに最善の配置を選び、その期待値から現在の着手を決めます。
+1手約5秒を上限とし、終盤は全配置と可能な範囲の配牌を列挙、序盤は候補と配牌を絞って探索します。
+相手の未知カード・序盤の探索打切り・FL継続価値には近似が残ります。
+仕組みと検証結果は [期待値探索CPU](docs/EXPECTIMAX.md) を参照してください。
 
 CPU はナッシュ均衡を解いたものではありません。探索の範囲、検証結果の読み方、
 既知の限界と今後の均衡計算への方針は [CPU の設計と検証](docs/CPU.md) を参照してください。

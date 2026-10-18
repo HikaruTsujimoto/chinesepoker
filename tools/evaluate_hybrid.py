@@ -17,7 +17,7 @@ from chinesepoker.ai.value_model import DEFAULT_MODEL
 def evaluate(pairs, seed, seconds, variants, initial_tiers=(0,0), max_hands=64):
     from chinesepoker.ai.action_model import DEFAULT_MODEL as action_path, load_model as load_action
     action_hash=None
-    if any(v in ('action','adaptive') for v in variants):
+    if any(v in ('action','adaptive','expectimax') for v in variants):
         load_action.cache_clear()
         action_hash=hashlib.sha256(action_path.read_bytes()).hexdigest()
     old = replace(LEVELS['normal'], seconds=seconds)
@@ -25,14 +25,16 @@ def evaluate(pairs, seed, seconds, variants, initial_tiers=(0,0), max_hands=64):
     for variant in variants:
         new = replace(old, value_weight=.4 if variant in ('value','hybrid') else 0,
                       diversified_fantasy=variant in ('fantasy','hybrid','adaptive'),
-                      action_weight=.35 if variant in ('action','adaptive') else 0)
+                      action_weight=.35 if variant in ('action','adaptive') else 0,
+                      expectimax=variant=='expectimax',
+                      shortlist=12 if variant=='expectimax' else old.shortlist)
         for pair in range(pairs):
             for new_seat in (0,1):
                 # Same deck stream for swapped seats and all variants; future
                 # trajectories can diverge due to FL, so pair entire sessions.
                 chance = random.Random(seed+pair)
                 state = SessionState(tiers=tuple(initial_tiers))
-                decisions, fouls, fl_hands = [[],[]], [0,0], [0,0]
+                decisions, methods, fouls, fl_hands = [[],[]], [[],[]], [0,0], [0,0]
                 while not state.settled:
                     if state.needs_deal:
                         if state.completed_hands >= max_hands:
@@ -44,6 +46,7 @@ def evaluate(pairs, seed, seconds, variants, initial_tiers=(0,0), max_hands=64):
                     decision = choose_move(obs, config=new if seat == new_seat else old,
                                            seed=seed+pair*100000+state.completed_hands*100+state.turn)
                     decisions[seat].append(decision.seconds)
+                    methods[seat].append(decision.method)
                     next_state = state.child(decision.move)
                     if next_state.completed_hands != state.completed_hands:
                         boards = next_state.histories[0][-1][2]
@@ -54,7 +57,8 @@ def evaluate(pairs, seed, seconds, variants, initial_tiers=(0,0), max_hands=64):
                 records.append(dict(variant=variant,pair=pair,new_seat=new_seat,settled=state.settled,
                                     points=state.payoff(new_seat) if state.settled else None,
                                     hands=state.completed_hands,new_fouls=fouls[new_seat],old_fouls=fouls[1-new_seat],
-                                    fl_player_hands=sum(fl_hands),new_seconds=decisions[new_seat],old_seconds=decisions[1-new_seat]))
+                                    fl_player_hands=sum(fl_hands),new_seconds=decisions[new_seat],old_seconds=decisions[1-new_seat],
+                                    new_methods=methods[new_seat]))
             print(f'{variant}: {pair+1}/{pairs} pairs', flush=True)
     results = {}
     for variant in variants:
@@ -87,7 +91,7 @@ if __name__ == '__main__':
     parser.add_argument('--pairs',type=int,default=12)
     parser.add_argument('--seed',type=int,default=20300000)
     parser.add_argument('--seconds',type=float,default=1.5)
-    parser.add_argument('--variants',nargs='+',choices=['value','fantasy','hybrid','action','adaptive'],default=['value','fantasy','hybrid'])
+    parser.add_argument('--variants',nargs='+',choices=['value','fantasy','hybrid','action','adaptive','expectimax'],default=['value','fantasy','hybrid'])
     parser.add_argument('--initial-tiers',nargs=2,type=int,choices=[0,14,15,16,17],default=[0,0])
     parser.add_argument('--max-hands',type=int,default=64)
     parser.add_argument('--output',type=Path,default=Path('docs/hybrid-evaluation.json'))
