@@ -27,7 +27,7 @@ LEVELS = {
     'hard': SearchConfig(5.0, 256, 32, 2048),
     'hybrid': SearchConfig(1.5, 64, 16, 384, True, 0.4, True),
     'adaptive': SearchConfig(1.5, 64, 16, 384, True, 0.0, True, 0.35),
-    'expectimax': SearchConfig(seconds=5.0, shortlist=12, expectimax=True),
+    'expectimax': SearchConfig(seconds=10.0, samples=128, shortlist=24, expectimax=True),
 }
 
 
