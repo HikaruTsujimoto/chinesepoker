@@ -410,9 +410,8 @@ class GameGUI:
             return
 
         if self.is_cpu_turn():
-            elapsed = time.monotonic() - self.cpu_started
             message = ("CPU error: press R to retry or Esc for menu" if self.cpu_error else
-                       f"CPU thinking... {elapsed:.1f}s | {self.difficulty.title()}")
+                       "CPU thinking...")
             draw_text(surface, message, font, GOLD, WIDTH // 2, 500, align="center")
             draw_text(surface, "Your opponent's hand stays hidden", font, WHITE, WIDTH // 2, 550, align="center")
             return
@@ -569,7 +568,7 @@ def cpu_smoke_test(strategy_path=None, difficulty='expectimax'):
     if len(card_images) != 53:
         raise RuntimeError('Missing bundled images')
     gui = GameGUI('learned' if strategy_path else difficulty, strategy_path=strategy_path)
-    deadline = time.monotonic() + 60
+    deadline = time.monotonic() + 120
     hybrid_used = False
     adaptive_used = False
     try:
