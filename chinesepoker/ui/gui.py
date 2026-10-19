@@ -6,7 +6,7 @@ import multiprocessing
 from concurrent.futures import ProcessPoolExecutor
 from chinesepoker.ai.model import Observation, board_of, encode, apply_move
 from chinesepoker.ai.search import choose_move
-from chinesepoker.ai.learned import choose_learned
+from chinesepoker import features
 from chinesepoker.ai.training_games import observation_data, move_data
 from chinesepoker.core.player import Player
 from chinesepoker.core.game import Game
@@ -90,7 +90,9 @@ class Button:
         return False
 
 class GameGUI:
-    def __init__(self, difficulty='normal', executor=None, strategy_path=None):
+    def __init__(self, difficulty='expectimax', executor=None, strategy_path=None):
+        if not features.LEGACY_CPUS_ENABLED and (difficulty not in (None, 'expectimax') or strategy_path):
+            raise ValueError('Legacy CPUs are disabled; use Expectimax')
         self.difficulty = difficulty
         self.strategy_path = strategy_path
         self.cpu_history = ()
@@ -113,6 +115,10 @@ class GameGUI:
         self.current_round_num = 1
         
         self.selected_card = None
+        self.hand_sort_descending = None
+        self.hand_sort_mode = None
+        self.btn_sort = Button(50, 432, 190, 38, 'Rank: 2 -> A', (0, 110, 160), (0, 145, 200))
+        self.btn_sort_suit = Button(250, 432, 190, 38, 'Suit: S H D C', (0, 110, 160), (0, 145, 200))
         self.waiting_for_turn_start = False
         self.btn_confirm = Button(WIDTH // 2 - 75, HEIGHT - 80, 150, 50, "Confirm", (0, 120, 200), (0, 150, 250))
         self.btn_next = Button(WIDTH // 2 - 100, HEIGHT - 100, 200, 50, "Next Round", (0, 150, 50), (0, 180, 80))
@@ -164,6 +170,9 @@ class GameGUI:
         self.current_action = self.actions.pop(0)
         self.placed_this_turn = []
         self.selected_card = None
+        self.hand_sort_descending = None
+        self.hand_sort_mode = None
+        self.btn_sort.text = 'Rank: 2 -> A'
         
         if self.current_action['type'] == 'turn':
             action_round = self.current_action.get('round', 1)
@@ -216,6 +225,7 @@ class GameGUI:
             if self.executor is None:
                 self.executor = ProcessPoolExecutor(max_workers=1, mp_context=multiprocessing.get_context('spawn'))
             if self.difficulty == 'learned':
+                from chinesepoker.ai.learned import choose_learned
                 self.cpu_future = self.executor.submit(choose_learned, self.cpu_observation(),
                     self.strategy_path, self.cpu_history, 1,
                     not (self.p1.fantasyland or self.p2.fantasyland))
@@ -275,6 +285,20 @@ class GameGUI:
             
         player = self.current_action['player']
         place_req = self.current_action['place']
+        self.btn_sort.rect.x = 50 if player is self.p1 else 700
+        self.btn_sort_suit.rect.x = self.btn_sort.rect.x + 200
+        if player.fantasyland and self.btn_sort.rect.collidepoint(pos):
+            self.hand_sort_descending = not self.hand_sort_descending if self.hand_sort_mode == 'rank' else False
+            self.hand_sort_mode = 'rank'
+            self.sort_hand()
+            self.btn_sort.text = 'Rank: 2 -> A' if self.hand_sort_descending else 'Rank: A -> 2'
+            return
+        if player.fantasyland and self.btn_sort_suit.rect.collidepoint(pos):
+            self.hand_sort_mode = 'suit'
+            self.hand_sort_descending = None
+            self.btn_sort.text = 'Rank: 2 -> A'
+            self.sort_hand()
+            return
         
         # Check clicking cards in hand
         p_idx = 0 if player == self.p1 else 1
@@ -309,6 +333,7 @@ class GameGUI:
                             row_cards.remove(clicked_card)
                             self.placed_this_turn.remove(clicked_card)
                             self.cards_in_hand.append(clicked_card)
+                            self.sort_hand()
                             self.selected_card = clicked_card
                     else:
                         # Empty slot, try to place selected card
@@ -322,6 +347,13 @@ class GameGUI:
                                     self.placed_this_turn.append(self.selected_card)
                                     self.selected_card = None
                     return
+
+    def sort_hand(self):
+        if self.hand_sort_mode == 'suit':
+            self.cards_in_hand.sort(key=lambda c: (c.SUITS.index(c.suit), c.value))
+        elif self.hand_sort_mode == 'rank':
+            self.cards_in_hand.sort(key=lambda c: (
+                -c.value if self.hand_sort_descending else c.value, c.SUITS.index(c.suit)))
 
     def draw(self, surface):
         surface.fill(BG_COLOR)
@@ -410,6 +442,11 @@ class GameGUI:
             p_idx = 0 if player == self.p1 else 1
             hand_start_x = 50 if p_idx == 0 else 700
             hand_start_y = 480
+            if player.fantasyland:
+                self.btn_sort.rect.x = hand_start_x
+                self.btn_sort_suit.rect.x = hand_start_x + 200
+                self.btn_sort.draw(surface)
+                self.btn_sort_suit.draw(surface)
             for i, card in enumerate(self.cards_in_hand):
                 row_offset = i // 5
                 col_offset = i % 5
@@ -423,27 +460,33 @@ class GameGUI:
             if len(self.placed_this_turn) == req:
                 self.btn_confirm.draw(surface)
 
-def menu_buttons(strategy_path=None):
-    choices = [('CPU - Easy', 'easy'), ('CPU - Normal', 'normal'),
-               ('CPU - Hard', 'hard'), ('CPU - Hybrid (test)', 'hybrid'),
-               ('CPU - Adaptive (test)', 'adaptive'),
-               ('CPU - Expectimax (test)', 'expectimax'), ('Two players', None)]
-    if strategy_path:
-        choices.append(('CPU - Learned (test)', 'learned'))
+def menu_buttons(strategy_path=None, other_cpus=False):
+    if other_cpus and features.LEGACY_CPUS_ENABLED:
+        choices = [('CPU - Easy', 'easy'), ('CPU - Normal', 'normal'),
+                   ('CPU - Hard', 'hard'), ('CPU - Hybrid (test)', 'hybrid'),
+                   ('CPU - Adaptive (test)', 'adaptive')]
+        if strategy_path:
+            choices.append(('CPU - Learned (test)', 'learned'))
+        choices.append(('Back', 'back'))
+    else:
+        choices = [('Play vs CPU', 'expectimax'), ('Two players', None)]
+        if features.LEGACY_CPUS_ENABLED:
+            choices.append(('Other CPUs', 'other_cpus'))
     return [(Button(WIDTH // 2 - 165, 300 + i * 75, 330, 60, label,
                        (0, 110, 160), (0, 145, 200)), level) for i, (label, level) in enumerate(choices)]
 
 
-def draw_menu(surface, buttons):
+def draw_menu(surface, buttons, other_cpus=False):
     surface.fill(BG_COLOR)
     draw_text(surface, "Pineapple OFC", large_font, GOLD, WIDTH // 2, 180, align="center")
-    draw_text(surface, "Choose your opponent", font, WHITE, WIDTH // 2, 240, align="center")
+    draw_text(surface, 'Other CPUs' if other_cpus else 'CPU: Expectimax', font, WHITE, WIDTH // 2, 240, align="center")
     for button, _ in buttons:
         button.draw(surface)
 
 
 def main(strategy_path=None):
     gui = None
+    other_cpus = False
     buttons = menu_buttons(strategy_path)
     running = True
     try:
@@ -455,7 +498,12 @@ def main(strategy_path=None):
                     if gui.can_return_to_menu():
                         gui.close()
                         gui = None
+                        other_cpus = False
+                        buttons = menu_buttons(strategy_path)
                     continue
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE and gui is None:
+                    other_cpus = False
+                    buttons = menu_buttons(strategy_path)
                 if gui and event.type == pygame.KEYDOWN and event.key == pygame.K_r and gui.cpu_error:
                     gui.close()
                     gui.start_cpu()
@@ -464,7 +512,11 @@ def main(strategy_path=None):
                 if gui is None:
                     for button, level in buttons:
                         if button.is_clicked(event):
-                            gui = GameGUI(level, strategy_path=strategy_path)
+                            if level in ('other_cpus', 'back'):
+                                other_cpus = level == 'other_cpus'
+                                buttons = menu_buttons(strategy_path, other_cpus)
+                            else:
+                                gui = GameGUI(level, strategy_path=strategy_path)
                             break
                 elif gui.is_cpu_turn():
                     continue
@@ -493,7 +545,7 @@ def main(strategy_path=None):
                 help_text = 'Esc: menu' if gui.can_return_to_menu() else 'FL active: continue until both players leave Fantasyland'
                 draw_text(screen, help_text, font, WHITE, 15, HEIGHT - 40)
             else:
-                draw_menu(screen, buttons)
+                draw_menu(screen, buttons, other_cpus)
             pygame.display.flip()
             clock.tick(FPS)
     finally:
@@ -512,7 +564,7 @@ def smoke_test():
     pygame.quit()
 
 
-def cpu_smoke_test(strategy_path=None, difficulty='easy'):
+def cpu_smoke_test(strategy_path=None, difficulty='expectimax'):
     """Exercise the real spawned worker, turn transitions and bundled images."""
     if len(card_images) != 53:
         raise RuntimeError('Missing bundled images')

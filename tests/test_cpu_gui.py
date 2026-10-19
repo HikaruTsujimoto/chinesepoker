@@ -4,6 +4,7 @@ os.environ.setdefault('SDL_AUDIODRIVER', 'dummy')
 
 from concurrent.futures import Future
 import unittest
+from unittest.mock import patch
 try:
     import pygame
 except ImportError:
@@ -29,6 +30,27 @@ class InlineExecutor:
 
 @unittest.skipIf(pygame is None, 'Install requirements/runtime.txt for GUI tests')
 class CpuGuiTests(unittest.TestCase):
+    def setUp(self):
+        # Existing compatibility checks deliberately exercise archived policies.
+        switch = patch('chinesepoker.features.LEGACY_CPUS_ENABLED', True)
+        switch.start()
+        self.addCleanup(switch.stop)
+
+    def test_disabled_legacy_entries_and_restore_switch(self):
+        from chinesepoker.ui.gui import GameGUI, menu_buttons
+        with patch('chinesepoker.features.LEGACY_CPUS_ENABLED', False):
+            for other in (False, True):
+                self.assertEqual([level for _,level in menu_buttons('old.json',other)], ['expectimax',None])
+            for level in ('easy','normal','hard','hybrid','adaptive','learned'):
+                with self.assertRaisesRegex(ValueError,'disabled'):
+                    GameGUI(level)
+            with self.assertRaisesRegex(ValueError,'disabled'):
+                GameGUI('expectimax',strategy_path='old.json')
+            gui=GameGUI()
+            self.assertEqual(gui.difficulty,'expectimax')
+            gui.close()
+        self.assertIn('learned',[level for _,level in menu_buttons('old.json',True)])
+
     def test_menu_exit_waits_for_both_next_fl_rights_to_end(self):
         from chinesepoker.ui.gui import GameGUI
         gui = GameGUI('easy',executor=InlineExecutor())
