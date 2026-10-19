@@ -6,7 +6,7 @@ import multiprocessing
 from concurrent.futures import ProcessPoolExecutor
 from chinesepoker.ai.model import Observation, board_of, encode, apply_move
 from chinesepoker.ai.search import choose_move
-from chinesepoker.ai.learned import choose_learned
+from chinesepoker import features
 from chinesepoker.ai.training_games import observation_data, move_data
 from chinesepoker.core.player import Player
 from chinesepoker.core.game import Game
@@ -91,6 +91,8 @@ class Button:
 
 class GameGUI:
     def __init__(self, difficulty='expectimax', executor=None, strategy_path=None):
+        if not features.LEGACY_CPUS_ENABLED and (difficulty not in (None, 'expectimax') or strategy_path):
+            raise ValueError('Legacy CPUs are disabled; use Expectimax')
         self.difficulty = difficulty
         self.strategy_path = strategy_path
         self.cpu_history = ()
@@ -223,6 +225,7 @@ class GameGUI:
             if self.executor is None:
                 self.executor = ProcessPoolExecutor(max_workers=1, mp_context=multiprocessing.get_context('spawn'))
             if self.difficulty == 'learned':
+                from chinesepoker.ai.learned import choose_learned
                 self.cpu_future = self.executor.submit(choose_learned, self.cpu_observation(),
                     self.strategy_path, self.cpu_history, 1,
                     not (self.p1.fantasyland or self.p2.fantasyland))
@@ -458,7 +461,7 @@ class GameGUI:
                 self.btn_confirm.draw(surface)
 
 def menu_buttons(strategy_path=None, other_cpus=False):
-    if other_cpus:
+    if other_cpus and features.LEGACY_CPUS_ENABLED:
         choices = [('CPU - Easy', 'easy'), ('CPU - Normal', 'normal'),
                    ('CPU - Hard', 'hard'), ('CPU - Hybrid (test)', 'hybrid'),
                    ('CPU - Adaptive (test)', 'adaptive')]
@@ -466,8 +469,9 @@ def menu_buttons(strategy_path=None, other_cpus=False):
             choices.append(('CPU - Learned (test)', 'learned'))
         choices.append(('Back', 'back'))
     else:
-        choices = [('Play vs CPU', 'expectimax'), ('Two players', None),
-                   ('Other CPUs', 'other_cpus')]
+        choices = [('Play vs CPU', 'expectimax'), ('Two players', None)]
+        if features.LEGACY_CPUS_ENABLED:
+            choices.append(('Other CPUs', 'other_cpus'))
     return [(Button(WIDTH // 2 - 165, 300 + i * 75, 330, 60, label,
                        (0, 110, 160), (0, 145, 200)), level) for i, (label, level) in enumerate(choices)]
 
@@ -560,7 +564,7 @@ def smoke_test():
     pygame.quit()
 
 
-def cpu_smoke_test(strategy_path=None, difficulty='easy'):
+def cpu_smoke_test(strategy_path=None, difficulty='expectimax'):
     """Exercise the real spawned worker, turn transitions and bundled images."""
     if len(card_images) != 53:
         raise RuntimeError('Missing bundled images')
