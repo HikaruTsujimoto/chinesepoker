@@ -3,6 +3,8 @@ import os
 import sys
 import time
 import multiprocessing
+import sqlite3
+from uuid import uuid4
 from concurrent.futures import ProcessPoolExecutor
 from chinesepoker.ai.model import Observation, board_of, encode, apply_move
 from chinesepoker.ai.search import choose_move
@@ -11,6 +13,7 @@ from chinesepoker.ai.training_games import observation_data, move_data
 from chinesepoker.core.player import Player
 from chinesepoker.core.game import Game
 from chinesepoker.core.session_rules import can_settle
+from chinesepoker.profiles import ProfileStore, round_event
 
 # --- Constants & Colors ---
 WIDTH, HEIGHT = 1280, 900
@@ -28,8 +31,8 @@ pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Pineapple OFC")
 clock = pygame.time.Clock()
-font = pygame.font.SysFont('Arial', 24, bold=True)
-large_font = pygame.font.SysFont('Arial', 36, bold=True)
+font = pygame.font.SysFont('yugothic,meiryo,notosanscjk,Arial', 24, bold=True)
+large_font = pygame.font.SysFont('yugothic,meiryo,notosanscjk,Arial', 36, bold=True)
 mono_font = pygame.font.SysFont('Consolas', 24, bold=True)
 
 def resource_path(relative_path):
@@ -90,11 +93,26 @@ class Button:
         return False
 
 class GameGUI:
-    def __init__(self, difficulty='expectimax', executor=None, strategy_path=None):
+    def __init__(self, difficulty='expectimax', executor=None, strategy_path=None,
+                 profile_store=None, profile_ids=(None, None)):
         if not features.LEGACY_CPUS_ENABLED and (difficulty not in (None, 'expectimax') or strategy_path):
             raise ValueError('Legacy CPUs are disabled; use Expectimax')
         self.difficulty = difficulty
         self.strategy_path = strategy_path
+        self.profile_store = profile_store
+        self.profile_ids = (profile_ids[0], None if difficulty else profile_ids[1])
+        active = [p for p in self.profile_ids if p is not None]
+        if len(set(active)) != len(active):
+            raise ValueError('Select different profiles for each player')
+        known = {p['id']:p['name'] for p in profile_store.profiles()} if profile_store else {}
+        if any(p not in known for p in active):
+            raise ValueError('Unknown profile')
+        self.display_names = (known.get(self.profile_ids[0], 'Player 1 (Guest)'),
+                              'CPU' if difficulty else known.get(self.profile_ids[1], 'Player 2 (Guest)'))
+        self.session_id = uuid4().hex
+        self.session_settled = False
+        self.pending_result = None
+        self.save_error = None
         self.cpu_history = ()
         self.executor = executor
         self.cpu_future = None
@@ -130,6 +148,12 @@ class GameGUI:
         self.next_action()
 
     def build_round_actions(self):
+        if self.pending_result is not None:
+            raise RuntimeError('Save the previous hand before dealing again')
+        if self.session_settled:
+            self.session_id = uuid4().hex
+            self.session_settled = False
+        self.round_id = uuid4().hex
         self.cpu_history = ()
         self.discards = []
         self.hidden_cards = {self.p1.name: [], self.p2.name: []}
@@ -204,7 +228,26 @@ class GameGUI:
                     row.sort(key=lambda c: (counts[c.value], c.value), reverse=True)
                     
             self.show_results = True
+            before = [self.game.points[p.name] for p in self.game.players]
             self.results_text = self.game.resolve_scores()
+            self.session_settled = can_settle([p.next_fantasyland for p in self.game.players])
+            if self.profile_store is not None and any(self.profile_ids):
+                points = [self.game.points[p.name]-previous for p,previous in zip(self.game.players,before)]
+                self.pending_result = round_event(self.round_id, self.session_id,
+                    'cpu' if self.difficulty else 'pvp', self.profile_ids,
+                    self.game.players, points, self.session_settled)
+                self.save_result()
+
+    def save_result(self):
+        if self.pending_result is None:
+            return
+        try:
+            self.profile_store.record_round(self.pending_result)
+        except (sqlite3.Error, OSError) as error:
+            self.save_error = str(error)
+            return
+        self.pending_result = None
+        self.save_error = None
 
     def is_cpu_turn(self):
         return bool(self.difficulty and self.current_action and
@@ -258,6 +301,8 @@ class GameGUI:
             self.executor = None
 
     def can_return_to_menu(self):
+        if self.pending_result is not None:
+            return False
         rights = [p.next_fantasyland if self.show_results else p.fantasyland for p in (self.p1,self.p2)]
         return can_settle(rights)
 
@@ -364,9 +409,12 @@ class GameGUI:
             base_x = 50 if idx == 0 else 700
             
             # Draw player name and score
-            draw_text(surface, f"{p.name} - Score: {self.game.points[p.name]}", font, WHITE, base_x, 60)
+            name = self.display_names[idx]
+            while font.size(name)[0] > 290:
+                name = name[:-2] + '…'
+            draw_text(surface, f"{name}  {self.game.points[p.name]:+d}pt", font, WHITE, base_x, 60)
             if p.fantasyland:
-                draw_text(surface, "FANTASYLAND", font, GOLD, base_x + 250, 60)
+                draw_text(surface, "FANTASYLAND", font, GOLD, base_x, 30)
                 
             for row_name in ['top', 'mid', 'bot']:
                 rects = row_rects[row_name]
@@ -406,7 +454,13 @@ class GameGUI:
                 draw_text(surface, line, mono_font, WHITE, WIDTH//2 - 180, y, align="left")
                 y += 35
                     
-            self.btn_next.draw(surface)
+            if self.save_error:
+                draw_text(surface, '成績を保存できません。Rキーで再試行してください。', font, RED,
+                          WIDTH//2, 715, align='center')
+            else:
+                if any(self.profile_ids):
+                    draw_text(surface, 'アカウントに成績を保存しました', font, GOLD, WIDTH//2, 715, align='center')
+                self.btn_next.draw(surface)
             return
 
         if self.is_cpu_turn():
@@ -484,6 +538,13 @@ def draw_menu(surface, buttons, other_cpus=False):
 
 
 def main(strategy_path=None):
+    from chinesepoker.ui.accounts import AccountMenu
+    store, storage_error = None, None
+    try:
+        store = ProfileStore()
+    except (sqlite3.Error, OSError) as error:
+        storage_error = str(error)
+    accounts = AccountMenu(store, storage_error)
     gui = None
     other_cpus = False
     buttons = menu_buttons(strategy_path)
@@ -493,6 +554,9 @@ def main(strategy_path=None):
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
+                    continue
+                if gui is None and (accounts.page != 'home' or not other_cpus) and accounts.handle_event(event):
+                    continue
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE and gui:
                     if gui.can_return_to_menu():
                         gui.close()
@@ -506,6 +570,8 @@ def main(strategy_path=None):
                 if gui and event.type == pygame.KEYDOWN and event.key == pygame.K_r and gui.cpu_error:
                     gui.close()
                     gui.start_cpu()
+                if gui and event.type == pygame.KEYDOWN and event.key == pygame.K_r and gui.save_error:
+                    gui.save_result()
                 if event.type != pygame.MOUSEBUTTONDOWN or event.button != 1:
                     continue
                 if gui is None:
@@ -515,12 +581,13 @@ def main(strategy_path=None):
                                 other_cpus = level == 'other_cpus'
                                 buttons = menu_buttons(strategy_path, other_cpus)
                             else:
-                                gui = GameGUI(level, strategy_path=strategy_path)
+                                gui = GameGUI(level, strategy_path=strategy_path,
+                                              profile_store=store, profile_ids=accounts.selected)
                             break
                 elif gui.is_cpu_turn():
                     continue
                 elif gui.show_results:
-                    if gui.btn_next.is_clicked(event):
+                    if not gui.save_error and gui.btn_next.is_clicked(event):
                         gui.show_results = False
                         gui.game_round += 1
                         gui.build_round_actions()
@@ -541,15 +608,23 @@ def main(strategy_path=None):
             if gui:
                 gui.update_cpu()
                 gui.draw(screen)
-                help_text = 'Esc: menu' if gui.can_return_to_menu() else 'FL active: continue until both players leave Fantasyland'
+                help_text = ('R: retry saving results' if gui.save_error else
+                             'Esc: menu' if gui.can_return_to_menu() else 'FL active: continue until both players leave Fantasyland')
                 draw_text(screen, help_text, font, WHITE, 15, HEIGHT - 40)
             else:
-                draw_menu(screen, buttons, other_cpus)
+                if accounts.page == 'home':
+                    draw_menu(screen, buttons, other_cpus)
+                    if not other_cpus:
+                        accounts.draw_home(screen)
+                else:
+                    accounts.draw(screen)
             pygame.display.flip()
             clock.tick(FPS)
     finally:
         if gui:
             gui.close()
+        if store:
+            store.close()
         pygame.quit()
 
 
@@ -563,11 +638,12 @@ def smoke_test():
     pygame.quit()
 
 
-def cpu_smoke_test(strategy_path=None, difficulty='expectimax'):
+def cpu_smoke_test(strategy_path=None, difficulty='expectimax', profile_store=None, profile_ids=(None,None)):
     """Exercise the real spawned worker, turn transitions and bundled images."""
     if len(card_images) != 53:
         raise RuntimeError('Missing bundled images')
-    gui = GameGUI('learned' if strategy_path else difficulty, strategy_path=strategy_path)
+    gui = GameGUI('learned' if strategy_path else difficulty, strategy_path=strategy_path,
+                  profile_store=profile_store, profile_ids=profile_ids)
     deadline = time.monotonic() + 120
     hybrid_used = False
     adaptive_used = False
@@ -597,6 +673,8 @@ def cpu_smoke_test(strategy_path=None, difficulty='expectimax'):
             raise RuntimeError('Incomplete CPU round')
         if not gui.last_cpu_decision:
             raise RuntimeError('CPU did not act')
+        if gui.save_error:
+            raise RuntimeError('Profile save failed: '+gui.save_error)
         if len(gui.cpu_history) != 5:
             raise RuntimeError('Incomplete CPU observation history')
         if strategy_path and not gui.last_cpu_decision.method.startswith(('MCCFR average', 'Normal fallback')):
@@ -612,6 +690,36 @@ def cpu_smoke_test(strategy_path=None, difficulty='expectimax'):
             gui.executor.shutdown(wait=True, cancel_futures=True)
             gui.executor = None
         pygame.quit()
+
+
+def profile_smoke_test():
+    """Exercise bundled SQLite, profile screens, worker and persistence in a temporary DB."""
+    import tempfile
+    from pathlib import Path
+    from chinesepoker.ui.accounts import AccountMenu
+    with tempfile.TemporaryDirectory() as folder:
+        path = Path(folder)/'profiles.sqlite3'
+        store = ProfileStore(path)
+        try:
+            ident = store.create('動作確認')
+            store.select(0,ident)
+            menu = AccountMenu(store)
+            menu.draw_home(screen)
+            menu.open_profiles(0)
+            menu.draw(screen)
+            menu.open_stats(0)
+            menu.draw(screen)
+            cpu_smoke_test(profile_store=store,profile_ids=(ident,None))
+            if store.stats(ident,'cpu')['hands'] != 1:
+                raise RuntimeError('Completed hand was not saved')
+        finally:
+            store.close()
+        reopened = ProfileStore(path)
+        try:
+            if reopened.selected()[0] != ident or reopened.stats(ident,'cpu')['hands'] != 1:
+                raise RuntimeError('Profile persistence failed')
+        finally:
+            reopened.close()
 
 
 if __name__ == "__main__":
