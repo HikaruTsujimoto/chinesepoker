@@ -144,6 +144,7 @@ class ProfileGuiTests(unittest.TestCase):
         self.assertEqual(first_session,gui.session_id)
         board(gui.p1,top='S2 H3 D4',mid='C5 S6 H7 D8 C9',bot='S10 HJ DQ CK SA')
         board(gui.p2,top='H2 D3 C4',mid='S5 H6 D7 C8 S9',bot='H10 DJ CQ SK HA')
+        gui.target_reached=True
         gui.actions=[{'type':'eval'}]
         gui.next_action()
         s=self.store.stats(self.ident,'cpu')
@@ -164,36 +165,94 @@ class ProfileGuiTests(unittest.TestCase):
         guest.next_action()
         self.assertEqual(self.store.db.execute('SELECT COUNT(*) FROM rounds').fetchone()[0],0)
 
-    def test_ui_create_select_stats_guest_and_restart(self):
+    def test_ui_starters_select_stats_and_restart(self):
         from chinesepoker.ui.accounts import AccountMenu
         from chinesepoker.ui.gui import screen
+        self.store.ensure_test_profiles()
         ui=AccountMenu(self.store)
-        click=lambda b:pygame.event.Event(pygame.MOUSEBUTTONDOWN,button=1,pos=b.rect.center)
-        ui.handle_event(click(ui.slot_buttons[0]))
         self.assertEqual(ui.page,'profiles')
-        ui.handle_event(pygame.event.Event(pygame.MOUSEBUTTONDOWN,button=1,pos=ui.input_rect.center))
-        ui.handle_event(pygame.event.Event(pygame.TEXTEDITING,text='日本語',start=0,length=3))
-        ui.handle_event(pygame.event.Event(pygame.TEXTINPUT,text='日本語の名前'))
-        ui.handle_event(click(ui.create_button))
-        self.assertEqual(ui.page,'home')
-        ident=ui.selected[0]
-        self.assertEqual(ui.name_of(ident),'日本語の名前')
-        self.store.record_round(event(ident))
-        ui.handle_event(click(ui.stat_buttons[0]))
+        ui.draw(screen)
+        ui.choose('starter-1')
+        self.assertEqual(self.store.balance('starter-1'),1050)
+        self.store.record_round(event('starter-1'))
+        ui.open_stats(0)
         self.assertEqual(ui.snapshot['hands'],1)
         ui.draw(screen)
-        ui.handle_event(click(ui.pvp))
-        self.assertEqual(ui.snapshot['hands'],0)
-        ui.handle_event(click(ui.back))
+        ui.page='home'
         ui.draw_home(screen)
         reopened=AccountMenu(self.store)
-        self.assertEqual(reopened.selected[0],ident)
-        ui.open_profiles(1)
-        ui.choose(self.ident)
-        ui.open_profiles(0)
-        ui.handle_event(click(ui.guest))
-        self.assertIsNone(ui.selected[0])
-        self.assertEqual(self.store.stats(ident,'cpu')['hands'],1)
+        self.assertEqual(reopened.selected[0],'starter-1')
+        self.assertEqual(self.store.balance('starter-1'),1050)
+
+    def test_threshold_waits_for_fl_and_retains_trigger(self):
+        from chinesepoker.ui.gui import GameGUI
+        gui=GameGUI(profile_store=self.store,profile_ids=(self.ident,None))
+        self.addCleanup(gui.close)
+        def resolve(score, fl):
+            gui.game.points={gui.p1.name:score,gui.p2.name:-score}
+            gui.p1.next_fantasyland=fl
+            gui.p2.next_fantasyland=False
+            return 'test'
+        for score,fl,finished in [(99,False,False),(101,True,False),(85,False,True)]:
+            board(gui.p1); board(gui.p2)
+            gui.actions=[{'type':'eval'}]
+            with patch.object(gui.game,'resolve_scores',side_effect=lambda:resolve(score,fl)):
+                gui.next_action()
+            self.assertEqual(gui.session_settled,finished)
+            if not finished:
+                gui.build_round_actions()
+        self.assertEqual(self.store.balance(self.ident),1100)
+        self.assertEqual(self.store.stats(self.ident,'cpu')['sessions'],1)
+        gui.save_result()
+        self.assertEqual(self.store.balance(self.ident),1100)
+        gui.build_round_actions()
+        self.assertEqual(gui.game.points[gui.p1.name],0)
+        self.assertFalse(gui.target_reached)
+
+
+class CurrencyTests(unittest.TestCase):
+    def test_starters_daily_and_atomic_match_rewards(self):
+        from datetime import datetime, timezone
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)/'profiles.sqlite3'
+            store=ProfileStore(path)
+            store.ensure_test_profiles();store.ensure_test_profiles()
+            self.assertEqual(len(store.profiles()),3)
+            a,b='starter-1','starter-2'
+            self.assertEqual(store.balance(a),1000)
+            before=datetime(2026,10,22,14,59,tzinfo=timezone.utc)
+            after=datetime(2026,10,22,15,0,tzinfo=timezone.utc)
+            self.assertEqual(store.claim_daily(a,before),50)
+            self.assertEqual(store.claim_daily(a,before),0)
+            self.assertEqual(store.claim_daily(a,after),50)
+            self.assertEqual(store.claim_daily(a,before),0)
+            e=event(a,points=105,mode='pvp');e['coin_match']=True
+            e['players']+=event(b,points=-105)['players']
+            store.record_round(e);store.record_round(e)
+            self.assertEqual((store.balance(a),store.balance(b)),(1200,900))
+            unfinished=event(a,points=5,session='s2',settled=False);unfinished['coin_match']=True
+            store.record_round(unfinished)
+            self.assertEqual(store.balance(a),1200)
+            broken=event(a,points=100,session='s3');broken['coin_match']=True
+            broken['players']+=event('missing',points=-100)['players']
+            with self.assertRaises(sqlite3.IntegrityError):store.record_round(broken)
+            self.assertEqual(store.balance(a),1200)
+            store.close()
+            store=ProfileStore(path)
+            self.assertEqual(store.balance(a),1200)
+            store.close()
+
+    def test_v1_migration_preserves_history_without_retroactive_rewards(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)/'profiles.sqlite3'
+            store=ProfileStore(path);ident=store.create('existing')
+            store.record_round(event(ident))
+            store.db.executescript('DROP TABLE coin_entries; DROP TABLE wallets; PRAGMA user_version=1;')
+            store.close()
+            store=ProfileStore(path)
+            self.assertEqual(store.balance(ident),1000)
+            self.assertEqual(store.stats(ident,'cpu')['sessions'],1)
+            store.close()
 
 
 if __name__=='__main__': unittest.main()

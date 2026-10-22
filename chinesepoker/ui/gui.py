@@ -111,6 +111,7 @@ class GameGUI:
                               'CPU' if difficulty else known.get(self.profile_ids[1], 'Player 2 (Guest)'))
         self.session_id = uuid4().hex
         self.session_settled = False
+        self.target_reached = False
         self.pending_result = None
         self.save_error = None
         self.cpu_history = ()
@@ -153,6 +154,8 @@ class GameGUI:
         if self.session_settled:
             self.session_id = uuid4().hex
             self.session_settled = False
+            self.target_reached = False
+            self.game.points = {p.name: 0 for p in self.game.players}
         self.round_id = uuid4().hex
         self.cpu_history = ()
         self.discards = []
@@ -230,12 +233,15 @@ class GameGUI:
             self.show_results = True
             before = [self.game.points[p.name] for p in self.game.players]
             self.results_text = self.game.resolve_scores()
-            self.session_settled = can_settle([p.next_fantasyland for p in self.game.players])
+            self.target_reached = self.target_reached or any(abs(v) >= 100 for v in self.game.points.values())
+            self.session_settled = self.target_reached and can_settle([p.next_fantasyland for p in self.game.players])
+            self.btn_next.text = 'メニューへ' if self.session_settled else '次のハンド'
             if self.profile_store is not None and any(self.profile_ids):
                 points = [self.game.points[p.name]-previous for p,previous in zip(self.game.players,before)]
                 self.pending_result = round_event(self.round_id, self.session_id,
                     'cpu' if self.difficulty else 'pvp', self.profile_ids,
                     self.game.players, points, self.session_settled)
+                self.pending_result['coin_match'] = True
                 self.save_result()
 
     def save_result(self):
@@ -454,6 +460,9 @@ class GameGUI:
                 draw_text(surface, line, mono_font, WHITE, WIDTH//2 - 180, y, align="left")
                 y += 35
                     
+            score = self.game.points[self.p1.name]
+            status = ('対局終了：勝ち +100コイン' if score > 0 else '対局終了：負け -100コイン' if score < 0 else '対局終了：引分 0コイン') if self.session_settled else ('100点到達：両者のFL終了まで継続' if self.target_reached else '累計 +100 / -100点で終了（FL中は継続）')
+            draw_text(surface, status, font, GOLD, WIDTH//2, 640, align='center')
             if self.save_error:
                 draw_text(surface, '成績を保存できません。Rキーで再試行してください。', font, RED,
                           WIDTH//2, 715, align='center')
@@ -542,8 +551,12 @@ def main(strategy_path=None):
     store, storage_error = None, None
     try:
         store = ProfileStore()
+        store.ensure_test_profiles()
     except (sqlite3.Error, OSError) as error:
         storage_error = str(error)
+        if store:
+            store.close()
+            store = None
     accounts = AccountMenu(store, storage_error)
     gui = None
     other_cpus = False
@@ -561,6 +574,7 @@ def main(strategy_path=None):
                     if gui.can_return_to_menu():
                         gui.close()
                         gui = None
+                        accounts.refresh_wallets()
                         other_cpus = False
                         buttons = menu_buttons(strategy_path)
                     continue
@@ -581,13 +595,30 @@ def main(strategy_path=None):
                                 other_cpus = level == 'other_cpus'
                                 buttons = menu_buttons(strategy_path, other_cpus)
                             else:
-                                gui = GameGUI(level, strategy_path=strategy_path,
-                                              profile_store=store, profile_ids=accounts.selected)
+                                seats = (0,) if level else (0,1)
+                                try:
+                                    if store is None or any(accounts.selected[i] is None for i in seats):
+                                        accounts.message = 'アカウントを選んでから開始してください。'
+                                        if store:
+                                            accounts.open_profiles(next(i for i in seats if accounts.selected[i] is None))
+                                        break
+                                    if any(store.balance(accounts.selected[i]) < 100 for i in seats):
+                                        accounts.message = '開始には各アカウント100コイン以上が必要です。'
+                                        break
+                                    gui = GameGUI(level, strategy_path=strategy_path,
+                                                  profile_store=store, profile_ids=accounts.selected)
+                                except (sqlite3.Error, OSError) as error:
+                                    accounts.message = '保存データを読み込めません。再度お試しください。' 
                             break
                 elif gui.is_cpu_turn():
                     continue
                 elif gui.show_results:
                     if not gui.save_error and gui.btn_next.is_clicked(event):
+                        if gui.session_settled:
+                            gui.close()
+                            gui = None
+                            accounts.refresh_wallets()
+                            continue
                         gui.show_results = False
                         gui.game_round += 1
                         gui.build_round_actions()
@@ -701,9 +732,12 @@ def profile_smoke_test():
         path = Path(folder)/'profiles.sqlite3'
         store = ProfileStore(path)
         try:
-            ident = store.create('動作確認')
+            store.ensure_test_profiles()
+            ident = 'starter-1'
             store.select(0,ident)
             menu = AccountMenu(store)
+            if store.balance(ident) != 1050:
+                raise RuntimeError('Starter wallet or daily bonus failed')
             menu.draw_home(screen)
             menu.open_profiles(0)
             menu.draw(screen)

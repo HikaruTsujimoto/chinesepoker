@@ -2,7 +2,7 @@
 import os
 import sqlite3
 import unicodedata
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from uuid import uuid4
 
@@ -22,7 +22,7 @@ class ProfileStore:
         try:
             self.db.execute('PRAGMA foreign_keys=ON')
             version = self.db.execute('PRAGMA user_version').fetchone()[0]
-            if version not in (0, 1):
+            if version not in (0, 1, 2):
                 raise sqlite3.DatabaseError('Unsupported profile database version')
             self.db.executescript('''
                 CREATE TABLE IF NOT EXISTS profiles (
@@ -42,7 +42,13 @@ class ProfileStore:
                     PRIMARY KEY(id, profile_id));
                 CREATE INDEX IF NOT EXISTS hands_profile ON hands(profile_id);
                 CREATE INDEX IF NOT EXISTS rounds_session ON rounds(session_id);
-                PRAGMA user_version=1;
+                CREATE TABLE IF NOT EXISTS wallets (
+                    profile_id TEXT PRIMARY KEY REFERENCES profiles(id), balance INTEGER NOT NULL DEFAULT 1000);
+                CREATE TABLE IF NOT EXISTS coin_entries (
+                    profile_id TEXT REFERENCES profiles(id), reason TEXT, reference TEXT, amount INTEGER NOT NULL,
+                    PRIMARY KEY(profile_id,reason,reference));
+                INSERT OR IGNORE INTO wallets(profile_id) SELECT id FROM profiles;
+                PRAGMA user_version=2;
             ''')
         except Exception:
             self.db.close()
@@ -62,6 +68,7 @@ class ProfileStore:
         try:
             with self.db:
                 self.db.execute('INSERT INTO profiles VALUES(?,?,?)', (ident, name, name.casefold()))
+                self.db.execute('INSERT INTO wallets(profile_id) VALUES(?)', (ident,))
         except sqlite3.IntegrityError as error:
             raise ValueError('同じ名前のアカウントがあります。') from error
         return ident
@@ -82,6 +89,39 @@ class ProfileStore:
                 raise ValueError('同じアカウントを両プレイヤーには選べません。')
         with self.db:
             self.db.execute('INSERT OR REPLACE INTO settings VALUES(?,?)', (f'seat{seat}', profile_id))
+
+    def ensure_test_profiles(self):
+        """Create the three starter accounts once, preserving existing accounts and balances."""
+        with self.db:
+            for i in range(1, 4):
+                name = f'テスト{i}'
+                self.db.execute('INSERT OR IGNORE INTO profiles VALUES(?,?,?)',
+                                (f'starter-{i}', name, name.casefold()))
+            self.db.execute('INSERT OR IGNORE INTO wallets(profile_id) SELECT id FROM profiles')
+
+    def balance(self, ident):
+        row = self.db.execute('SELECT balance FROM wallets WHERE profile_id=?', (ident,)).fetchone()
+        if row is None:
+            raise ValueError('アカウントが見つかりません。')
+        return row[0]
+
+    def _coins(self, ident, reason, reference, amount):
+        added = self.db.execute('INSERT OR IGNORE INTO coin_entries VALUES(?,?,?,?)',
+                               (ident, reason, reference, amount)).rowcount
+        if added:
+            self.db.execute('UPDATE wallets SET balance=balance+? WHERE profile_id=?', (amount, ident))
+        return amount if added else 0
+
+    def claim_daily(self, ident, now=None):
+        now = now or datetime.now(timezone.utc)
+        day = now.astimezone(timezone(timedelta(hours=9))).date().isoformat()
+        with self.db:
+            # A clock moved backwards must not make older days claimable again.
+            last = self.db.execute("SELECT MAX(reference) FROM coin_entries WHERE profile_id=? AND reason='daily'",
+                                   (ident,)).fetchone()[0]
+            if last and day <= last:
+                return 0
+            return self._coins(ident, 'daily', day, 50)
 
     def record_round(self, event):
         """Save both seats and any settled-session totals in one transaction.
@@ -110,6 +150,9 @@ class ProfileStore:
                         (event['session_id'], p['profile_id'])).fetchone()[0]
                     self.db.execute('INSERT INTO sessions VALUES(?,?,?,?,?)',
                         (event['session_id'], p['profile_id'], event['mode'], points, event['occurred_at']))
+                    if event.get('coin_match'):
+                        self._coins(p['profile_id'], 'match', event['session_id'],
+                                    100 if points > 0 else -100 if points < 0 else 0)
 
     def stats(self, profile_id, mode):
         rows = self.db.execute('''SELECT h.*,r.occurred_at FROM hands h JOIN rounds r ON r.id=h.round_id

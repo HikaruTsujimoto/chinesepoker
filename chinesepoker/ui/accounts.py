@@ -50,9 +50,28 @@ class AccountMenu:
         self.create_button = button(930,665,240,'作成して選択')
         self.cpu = button(90,125,230,'CPU対戦')
         self.pvp = button(335,125,230,'2人対戦')
+        self.wallets = {}
+        self.refresh_wallets(claim=True)
+        if store and self.selected[0] is None:
+            self.open_profiles(0)
+
+    def refresh_wallets(self, claim=False):
+        if not self.store:
+            return
+        try:
+            granted = 0
+            for ident in self.selected:
+                if ident:
+                    if claim:
+                        granted += self.store.claim_daily(ident)
+                    self.wallets[ident] = self.store.balance(ident)
+            if granted:
+                self.message = f'デイリーボーナス：合計 {granted} コイン受け取りました。'
+        except (sqlite3.Error, OSError):
+            self.message = '残高を読み込めません。アカウントを選び直してください。'
 
     def name_of(self, ident):
-        return next((p['name'] for p in self.people if p['id']==ident), 'ゲスト')
+        return next((p['name'] for p in self.people if p['id']==ident), '未選択')
 
     def stop_input(self):
         pygame.key.stop_text_input()
@@ -73,6 +92,7 @@ class AccountMenu:
         self.page = 'home'
         self.message = ''
         self.stop_input()
+        self.refresh_wallets(claim=True)
 
     def open_stats(self, seat):
         ident = self.selected[seat]
@@ -86,7 +106,7 @@ class AccountMenu:
         self.message = ''
 
     def rows(self):
-        return [(button(90,195+i*62,1080,fit(p['name'],1000)),p['id'])
+        return [(button(90,195+i*62,1080,fit(p['name']+'  /  '+str(self.store.balance(p['id']))+' コイン',1000)),p['id'])
                 for i,p in enumerate(self.people[self.offset:self.offset+6])]
 
     def handle_event(self, event):
@@ -122,27 +142,6 @@ class AccountMenu:
                     snapshot = self.store.stats(self.selected[self.target], mode)
                     self.mode, self.snapshot = mode, snapshot
             return True
-        if self.typing and event.type==pygame.TEXTINPUT:
-            self.name = (self.name+event.text)[:20]
-            self.composition = ''
-        elif self.typing and event.type==pygame.TEXTEDITING:
-            self.composition = event.text
-        elif self.typing and event.type==pygame.KEYDOWN and event.key==pygame.K_BACKSPACE:
-            if not self.composition:
-                self.name = self.name[:-1]
-        if event.type==pygame.MOUSEBUTTONDOWN and event.button==1 and self.input_rect.collidepoint(event.pos):
-            self.typing = True
-            pygame.key.start_text_input()
-            pygame.key.set_text_input_rect(self.input_rect)
-        if self.create_button.is_clicked(event):
-            if self.composition:
-                self.message = '日本語入力を確定してから作成してください。'
-            else:
-                ident = self.store.create(self.name)
-                self.people = self.store.profiles()
-                self.choose(ident)
-        if self.guest.is_clicked(event):
-            self.choose(None)
         if self.prev.is_clicked(event):
             self.offset = max(0,self.offset-6)
         if self.next.is_clicked(event) and self.offset+6<len(self.people):
@@ -154,15 +153,16 @@ class AccountMenu:
         return True
 
     def draw_home(self, surface):
-        draw_text(surface, 'アカウントの選択・作成', font, GOLD, WIDTH//2, 480, 'center')
+        draw_text(surface, 'テストアカウントを選んでスタート', font, GOLD, WIDTH//2, 480, 'center')
         for i,b in enumerate(self.slot_buttons):
-            b.text = fit(f'Player {i+1}  /  {self.name_of(self.selected[i])}',460)
+            b.text = fit(f'Player {i+1}  /  {self.name_of(self.selected[i])}  /  {self.wallets.get(self.selected[i],0)} コイン',460)
             b.draw(surface)
             self.stat_buttons[i].draw(surface)
         draw_text(surface, 'CPU戦ではPlayer 1を記録。2人対戦では選択した両者を記録。', small, MUTED, WIDTH//2, 680, 'center')
-        draw_text(surface, 'ゲストの成績は保存されません。アカウントはこのPC内だけで利用できます。', small, MUTED, WIDTH//2, 715, 'center')
+        draw_text(surface, '初期1,000 ／ 勝ち+100・負け−100 ／ デイリー50コイン（日本時間・1日1回）', small, MUTED, WIDTH//2, 715, 'center')
+        draw_text(surface, '累計±100点に到達後、両者のFL終了で精算します。', small, MUTED, WIDTH//2, 810, 'center')
         if self.storage_error:
-            draw_text(surface, '成績保存を利用できません。今回はゲストとして遊べます。', small, RED, WIDTH//2, 760, 'center')
+            draw_text(surface, '保存を利用できないため開始できません。アプリを再起動してください。', small, RED, WIDTH//2, 760, 'center')
         elif self.message:
             draw_text(surface, fit(self.message,1100,small), small, GOLD, WIDTH//2, 760, 'center')
 
@@ -170,7 +170,7 @@ class AccountMenu:
         surface.fill(BG_COLOR)
         if self.page == 'profiles':
             draw_text(surface, f'Player {self.target+1} のアカウント', large_font, WHITE, 90, 60)
-            draw_text(surface, '名前を選択するか、新しいアカウントを作成してください。', font, MUTED, 90, 125)
+            draw_text(surface, 'テスト1・テスト2・テスト3から選べます。既存のアカウントも利用できます。', font, MUTED, 90, 125)
             for b,ident in self.rows():
                 if ident == self.selected[self.target]:
                     b.color = (125,105,24)
@@ -180,12 +180,7 @@ class AccountMenu:
             self.prev.draw(surface)
             self.next.draw(surface)
             draw_text(surface, f'{self.offset//6+1} / {max(1,(len(self.people)+5)//6)}',font,WHITE,640,610,'center')
-            draw_text(surface, '新しい名前（1～20文字・日本語可）', small, MUTED, 90, 640)
-            pygame.draw.rect(surface,PANEL,self.input_rect,border_radius=6)
-            pygame.draw.rect(surface,GOLD if self.typing else WHITE,self.input_rect,2,border_radius=6)
-            draw_text(surface,fit(self.name+self.composition,780),font,WHITE,105,675)
-            self.create_button.draw(surface)
-            self.guest.draw(surface)
+            draw_text(surface, '選ぶと本日分のデイリー50コインを自動受取します。', small, GOLD, 90, 665)
         else:
             self.draw_stats(surface)
         self.back.draw(surface)
@@ -225,6 +220,6 @@ class AccountMenu:
             result = '勝ち' if r['points']>0 else '負け' if r['points']<0 else '引分'
             tag = 'ファウル' if r['foul'] else f'FL進入 {r["next_tier"]}枚' if r['entered_fl'] else 'FL継続' if r['continued_fl'] else 'FL終了' if r['was_fl'] else '通常'
             draw_text(surface,f'{stamp}     {result}    {r["points"]:+d} pt    {tag}',small,MUTED,90,607+i*25)
-        draw_text(surface,'1対局 = 両者のFL権がなくなるまで。勝率は引分を含む完了対局が分母です。',small,MUTED,90,765)
+        draw_text(surface,'1対局 = 累計±100点到達後、両者のFL終了まで。勝率は引分も含みます。',small,MUTED,90,765)
         draw_text(surface,'進入率 = 新規FL / 通常ハンド。継続率 = FL継続 / FLハンド。',small,MUTED,320,810)
         draw_text(surface,'中断した対局も、終了済みハンドの記録は残ります。未完了ハンドは記録しません。',small,MUTED,90,862)
