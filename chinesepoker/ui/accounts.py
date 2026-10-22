@@ -159,7 +159,7 @@ class AccountMenu:
             b.draw(surface)
             self.stat_buttons[i].draw(surface)
         draw_text(surface, 'CPU戦ではPlayer 1を記録。2人対戦では選択した両者を記録。', small, MUTED, WIDTH//2, 680, 'center')
-        draw_text(surface, '初期1,000 ／ 勝ち+100・負け−100 ／ デイリー50コイン（日本時間・1日1回）', small, MUTED, WIDTH//2, 715, 'center')
+        draw_text(surface, '初期1,000 ／ 勝ちは得点分・負け−100 ／ デイリー50コイン（日本時間・1日1回）', small, MUTED, WIDTH//2, 715, 'center')
         draw_text(surface, '累計±100点に到達後、両者のFL終了で精算します。', small, MUTED, WIDTH//2, 810, 'center')
         if self.storage_error:
             draw_text(surface, '保存を利用できないため開始できません。アプリを再起動してください。', small, RED, WIDTH//2, 760, 'center')
