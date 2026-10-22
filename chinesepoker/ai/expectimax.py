@@ -139,7 +139,7 @@ class Planner:
         return max(values)
 
 
-def choose_move(obs, seed=None, seconds=10.0, samples=128, shortlist=24):
+def choose_move(obs, seed=None, seconds=5.0, samples=128, shortlist=24):
     if not math.isfinite(seconds) or seconds < 0 or samples < 1 or shortlist < 1:
         raise ValueError('Invalid expectimax budget')
     start = time.monotonic()

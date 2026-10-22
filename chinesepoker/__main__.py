@@ -14,12 +14,13 @@ def main():
     mode.add_argument('--terminal', action='store_true', help='Play in the terminal')
     mode.add_argument('--smoke-test', action='store_true', help=argparse.SUPPRESS)
     mode.add_argument('--cpu-smoke-test', action='store_true', help=argparse.SUPPRESS)
+    mode.add_argument('--profile-smoke-test', action='store_true', help=argparse.SUPPRESS)
     args = parser.parse_args()
     if args.strategy:
         if not features.LEGACY_CPUS_ENABLED:
             parser.error('Legacy CPUs are disabled; --strategy is unavailable')
         from pathlib import Path
-        if args.terminal or args.smoke_test:
+        if args.terminal or args.smoke_test or args.profile_smoke_test:
             parser.error('--strategy is only available in the graphical game')
         if not Path(args.strategy).is_file():
             parser.error('Strategy file does not exist')
@@ -31,6 +32,8 @@ def main():
         return
     if args.terminal:
         from chinesepoker.ui.cli import main as play
+    elif args.profile_smoke_test:
+        from chinesepoker.ui.gui import profile_smoke_test as play
     elif args.cpu_smoke_test:
         from chinesepoker.ui.gui import cpu_smoke_test as play
         play(difficulty=args.cpu_level)
