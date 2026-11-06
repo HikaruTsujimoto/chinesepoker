@@ -461,7 +461,7 @@ class GameGUI:
                 y += 35
                     
             score = self.game.points[self.p1.name]
-            status = ('対局終了：勝ち +100コイン' if score > 0 else '対局終了：負け -100コイン' if score < 0 else '対局終了：引分 0コイン') if self.session_settled else ('100点到達：両者のFL終了まで継続' if self.target_reached else '累計 +100 / -100点で終了（FL中は継続）')
+            status = (f'対局終了：勝ち +{score}コイン' if score > 0 else '対局終了：負け -100コイン' if score < 0 else '対局終了：引分 0コイン') if self.session_settled else ('100点到達：両者のFL終了まで継続' if self.target_reached else '累計 +100 / -100点で終了（FL中は継続）')
             draw_text(surface, status, font, GOLD, WIDTH//2, 640, align='center')
             if self.save_error:
                 draw_text(surface, '成績を保存できません。Rキーで再試行してください。', font, RED,

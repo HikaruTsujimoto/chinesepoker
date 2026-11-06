@@ -152,7 +152,7 @@ class ProfileStore:
                         (event['session_id'], p['profile_id'], event['mode'], points, event['occurred_at']))
                     if event.get('coin_match'):
                         self._coins(p['profile_id'], 'match', event['session_id'],
-                                    100 if points > 0 else -100 if points < 0 else 0)
+                                    points if points > 0 else -100 if points < 0 else 0)
 
     def stats(self, profile_id, mode):
         rows = self.db.execute('''SELECT h.*,r.occurred_at FROM hands h JOIN rounds r ON r.id=h.round_id

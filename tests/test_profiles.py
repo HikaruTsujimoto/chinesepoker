@@ -201,10 +201,10 @@ class ProfileGuiTests(unittest.TestCase):
             self.assertEqual(gui.session_settled,finished)
             if not finished:
                 gui.build_round_actions()
-        self.assertEqual(self.store.balance(self.ident),1100)
+        self.assertEqual(self.store.balance(self.ident),1085)
         self.assertEqual(self.store.stats(self.ident,'cpu')['sessions'],1)
         gui.save_result()
-        self.assertEqual(self.store.balance(self.ident),1100)
+        self.assertEqual(self.store.balance(self.ident),1085)
         gui.build_round_actions()
         self.assertEqual(gui.game.points[gui.p1.name],0)
         self.assertFalse(gui.target_reached)
@@ -229,17 +229,31 @@ class CurrencyTests(unittest.TestCase):
             e=event(a,points=105,mode='pvp');e['coin_match']=True
             e['players']+=event(b,points=-105)['players']
             store.record_round(e);store.record_round(e)
-            self.assertEqual((store.balance(a),store.balance(b)),(1200,900))
+            self.assertEqual((store.balance(a),store.balance(b)),(1205,900))
             unfinished=event(a,points=5,session='s2',settled=False);unfinished['coin_match']=True
             store.record_round(unfinished)
-            self.assertEqual(store.balance(a),1200)
+            self.assertEqual(store.balance(a),1205)
             broken=event(a,points=100,session='s3');broken['coin_match']=True
             broken['players']+=event('missing',points=-100)['players']
             with self.assertRaises(sqlite3.IntegrityError):store.record_round(broken)
-            self.assertEqual(store.balance(a),1200)
+            self.assertEqual(store.balance(a),1205)
             store.close()
             store=ProfileStore(path)
-            self.assertEqual(store.balance(a),1200)
+            self.assertEqual(store.balance(a),1205)
+            store.close()
+
+    def test_rewards_use_final_positive_score_and_fixed_loss(self):
+        with tempfile.TemporaryDirectory() as folder:
+            store=ProfileStore(Path(folder)/'profiles.sqlite3')
+            ident=store.create('rewards')
+            for score,change in [(123,123),(250,250),(85,85),(-123,-100),(-250,-100),(-20,-100),(0,0)]:
+                with self.subTest(score=score):
+                    before=store.balance(ident)
+                    result=event(ident,points=score,session=uuid4().hex)
+                    result['coin_match']=True
+                    store.record_round(result)
+                    store.record_round(result)
+                    self.assertEqual(store.balance(ident),before+change)
             store.close()
 
     def test_v1_migration_preserves_history_without_retroactive_rewards(self):
